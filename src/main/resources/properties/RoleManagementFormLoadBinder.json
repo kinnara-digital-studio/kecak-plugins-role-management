@@ -1,0 +1,14 @@
+[
+  {
+    title : 'Role Management Form Load Binder',
+    properties : [
+      {
+        name : 'authObject',
+        label : 'Auth Object',
+        type : 'selectbox',
+        required : 'true',
+        options_ajax : '[CONTEXT_PATH]/web/json/plugin/%s/service?type=field'
+      }
+    ]
+  }
+]
