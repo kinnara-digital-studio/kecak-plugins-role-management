@@ -14,9 +14,11 @@ import org.joget.workflow.model.service.WorkflowManager;
 import org.joget.workflow.model.service.WorkflowUserManager;
 import org.springframework.context.ApplicationContext;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -38,9 +40,6 @@ public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
 
         String currentUser = wfUserManager.getCurrentUsername();
 
-        DirectoryManager directoryManager = (DirectoryManager)appContext.getBean("directoryManager");
-        Collection<Group> groups = directoryManager.getGroupByUsername(currentUser);
-
         String authObject = getPropertyString("authObject");
 
         // get Master Auth Object
@@ -50,27 +49,39 @@ public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
             return originalRowSet;
         }
 
-        // get Master Role Group
-        FormRowSet rowSetMasterRoleGroup = formDataDao.find(formMasterRoleGroup,  " WHERE e.customProperties.users LIKE '%'||?||'%'", new String[] {currentUser}, null, null, null, null);
+        DirectoryManager directoryManager = (DirectoryManager)appContext.getBean("directoryManager");
+        final StringBuilder conditionMasterRoleGroup = new StringBuilder();
+        final List<String> argumentsMasterRoleGroup = new ArrayList<>();
+        conditionMasterRoleGroup.append(" AND e.customProperties.users LIKE '%'||?||'%'");
+        argumentsMasterRoleGroup.add(currentUser);
+        directoryManager.getGroupByUsername(currentUser)
+                .stream()
+                .map(Group::getName)
+                .forEach(name -> {
+                    LogUtil.info(getClassName(), "group name ["+ name +"]");
+                    conditionMasterRoleGroup.append(" OR e.customProperties.groups LIKE '%'||?||'%'");
+                    argumentsMasterRoleGroup.add(name);
+                });
 
-        String conditionAuthObject;
+        // get Master Role Group
+        FormRowSet rowSetMasterRoleGroup = formDataDao.find(formMasterRoleGroup,  " WHERE 1 = 1 " + conditionMasterRoleGroup.toString(), argumentsMasterRoleGroup.toArray(), null, null, null, null);
+        String conditionsRoleId;
         if(rowSetMasterRoleGroup != null) {
-            conditionAuthObject = " e.customProperties.auth_object LIKE '%"+ rowMasterAuthObject.getId() + "%'";
+            // create Master Role filter based on Master Role Group data
+            conditionsRoleId =
+                        rowSetMasterRoleGroup
+                            .stream()
+                            .flatMap(row -> Arrays.stream(row.getProperty("roles").split(";")))
+                            .distinct()
+                            .collect(Collectors.joining("', '", " AND id IN ('", "')"));
         } else {
-            conditionAuthObject = "";
+            conditionsRoleId = "";
         }
 
-        // create Master Role filter based on Master Role Group data
-        String conditionsRoleId =
-                        rowSetMasterRoleGroup
-                                .stream()
-                                .flatMap(row -> Arrays.stream(row.getProperty("roles").split(";")))
-                                .distinct()
-                                .collect(Collectors.joining("', '", " id IN ('", "') AND"));
+        String conditionAuthObject = " AND e.customProperties.auth_object LIKE '%"+ rowMasterAuthObject.getId() + "%'";
 
         // get Master Role
-        FormRowSet rowSetMasterRole = formDataDao.find(formMasterRole, "WHERE 1 = 1 AND " + conditionsRoleId + conditionAuthObject, null, null, null, null, null);
-
+        FormRowSet rowSetMasterRole = formDataDao.find(formMasterRole, "WHERE 1 = 1 " + conditionsRoleId + conditionAuthObject, null, null, null, null, null);
         Pattern patternAuthObject = Pattern.compile("\\b"+ rowMasterAuthObject.getId() + "\\b");
         int permission = rowSetMasterRole
                 .stream()
@@ -83,21 +94,27 @@ public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
                 .reduce((p1, p2) -> p1 | p2)
                 .orElse(Utilities.PERMISSION_NONE);
 
-        Arrays.stream(rowMasterAuthObject.getProperty("object_name").split(";"))
-                .map(id -> FormUtil.findElement(id, element, formData))
-                .filter(Objects::nonNull)
-                .forEach(e -> {
-                    if((permission & Utilities.PERMISSION_WRITE) != Utilities.PERMISSION_WRITE) {
-                        FormUtil.setReadOnlyProperty(e);
+        // how to process the element based on permission
+        Consumer<Element> elementConsumer = e -> {
+            if (permission != Utilities.PERMISSION_WRITE) {
+                FormUtil.setReadOnlyProperty(e);
+                if (permission == Utilities.PERMISSION_NONE) {
+                    originalRowSet
+                            .forEach(row -> row.remove(FormUtil.getElementParameterName(e)));
+                }
+            }
+        };
 
-                        if(permission == Utilities.PERMISSION_NONE) {
-                            originalRowSet
-                                    .stream()
-//                                    .forEach(row -> row.setProperty(FormUtil.getElementParameterName(e), ""));
-                                    .forEach(row -> row.remove(FormUtil.getElementParameterName(e)));
-                        }
-                    }
-                });
+        String propertyObjectName = rowMasterAuthObject.getProperty("object_name");
+        if(propertyObjectName != null && !propertyObjectName.isEmpty()) {
+            Arrays.stream(propertyObjectName.split(";"))
+                    .map(id -> FormUtil.findElement(id, element, formData))
+                    .filter(Objects::nonNull)
+                    .forEach(elementConsumer);
+        } else {
+            element.getChildren(formData)
+                    .forEach(elementConsumer);
+        }
 
         return originalRowSet;
     }

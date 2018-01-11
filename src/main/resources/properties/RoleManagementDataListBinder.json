@@ -1,0 +1,21 @@
+[
+  {
+    title : 'Role Management DataList Binder',
+    properties : [
+      {
+        name : 'authObject',
+        label : 'Auth Object',
+        type : 'selectbox',
+        required : 'true',
+        options_ajax : '[CONTEXT_PATH]/web/json/plugin/%s/service?type=field'
+      },
+      {
+        name : 'dataListBinder',
+        label : 'DataList Binder',
+        type : 'elementselect',
+        options_ajax : '[CONTEXT_PATH]/web/property/json/getElements?classname=org.joget.apps.form.model.FormLoadElementBinder',
+        url : '[CONTEXT_PATH]/web/property/json[APP_PATH]/getPropertyOptions'
+      }
+    ]
+  }
+]

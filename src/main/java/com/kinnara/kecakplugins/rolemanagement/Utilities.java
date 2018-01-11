@@ -1,10 +1,14 @@
 package com.kinnara.kecakplugins.rolemanagement;
 
 import org.joget.apps.app.dao.AppDefinitionDao;
+import org.joget.apps.app.dao.DatalistDefinitionDao;
 import org.joget.apps.app.dao.FormDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
+import org.joget.apps.app.model.DatalistDefinition;
 import org.joget.apps.app.model.FormDefinition;
 import org.joget.apps.app.service.AppUtil;
+import org.joget.apps.datalist.model.DataList;
+import org.joget.apps.datalist.service.DataListService;
 import org.joget.apps.form.model.Form;
 import org.joget.apps.form.service.FormService;
 import org.springframework.context.ApplicationContext;
@@ -22,6 +26,7 @@ public class Utilities {
     public final static int PERMISSION_WRITE = 3;
 
     private final static Map<String, Form> formCache = new HashMap<String, Form>();
+    private final static Map<String, DataList> datalistCache = new HashMap<>();
 
     public static Form generateForm(String formDefId) {
         return generateForm(AppUtil.getCurrentAppDefinition(), formDefId);
@@ -57,6 +62,28 @@ public class Utilities {
 
                 return form;
             }
+        }
+        return null;
+    }
+
+    public static DataList generateDataList(String dataListId) {
+        return generateDataList(AppUtil.getCurrentAppDefinition(), dataListId);
+    }
+
+    public static DataList generateDataList(AppDefinition appDef, String dataListId) {
+        ApplicationContext applicationContext     = AppUtil.getApplicationContext();
+
+        if (datalistCache.containsKey(dataListId))
+            return datalistCache.get(dataListId);
+
+        DataListService dataListService = (DataListService) applicationContext.getBean("dataListService");
+        DatalistDefinitionDao datalistDefinitionDao = (DatalistDefinitionDao) applicationContext.getBean("datalistDefinitionDao");
+        DatalistDefinition datalistDefinition = datalistDefinitionDao.loadById(dataListId, appDef);
+        if (datalistDefinition != null) {
+            DataList dataList = dataListService.fromJson(datalistDefinition.getJson());
+            dataList.setDefaultPageSize(DataList.MAXIMUM_PAGE_SIZE);
+            datalistCache.put(dataListId, dataList);
+            return dataList;
         }
         return null;
     }
