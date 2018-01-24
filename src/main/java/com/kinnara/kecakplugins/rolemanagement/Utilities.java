@@ -18,7 +18,6 @@ import org.joget.commons.util.LogUtil;
 import org.joget.directory.model.Group;
 import org.joget.directory.model.service.DirectoryManager;
 import org.joget.workflow.model.service.WorkflowManager;
-import org.joget.workflow.model.service.WorkflowUserManager;
 import org.springframework.context.ApplicationContext;
 
 import java.util.*;
@@ -124,13 +123,19 @@ public class Utilities {
                 .stream()
                 .map(Group::getName)
                 .forEach(name -> {
-                    LogUtil.info(Utilities.class.getName(), "group name ["+ name +"]");
                     conditionMasterRoleGroup.append(" OR e.customProperties.groups LIKE '%'||?||'%'");
                     argumentsMasterRoleGroup.add(name);
                 });
+        conditionMasterRoleGroup.append(" OR e.customProperties.everyone = 'true'");
 
         // get Master Role Group
-        FormRowSet rowSetMasterRoleGroup = formDataDao.find(formMasterRoleGroup,  " WHERE 1 = 1 " + conditionMasterRoleGroup.toString(), argumentsMasterRoleGroup.toArray(), null, null, null, null);
+        Pattern roleGroupPattern = Pattern.compile(argumentsMasterRoleGroup.stream().collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
+        FormRowSet rowSetMasterRoleGroup = formDataDao.find(formMasterRoleGroup,  " WHERE 1 = 1 " + conditionMasterRoleGroup.toString(), argumentsMasterRoleGroup.toArray(), null, null, null, null)
+                .stream()
+                .filter(formRow -> "true".equals(formRow.getProperty("everyone"))
+                        || (formRow.getProperty("groups") != null && roleGroupPattern.matcher(formRow.getProperty("groups")).find()))
+                .collect(FormRowSet::new, FormRowSet::add, FormRowSet::addAll);
+
         String conditionsRoleId;
         if(rowSetMasterRoleGroup != null) {
             // create Master Role filter based on Master Role Group data
