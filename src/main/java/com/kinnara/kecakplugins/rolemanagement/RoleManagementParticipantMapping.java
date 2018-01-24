@@ -32,7 +32,7 @@ public class RoleManagementParticipantMapping extends DefaultParticipantPlugin{
         WorkflowUserManager wfUserManager = wfManager.getWorkflowUserManager();
         String currentUsername = wfUserManager.getCurrentUsername();
         List<String> assignments = new ArrayList<>();
-        if(Utilities.getPermission(currentUsername, getPropertyString("authObject")) == Utilities.PERMISSION_WRITE)
+        if(Utilities.getPermission(currentUsername, getPropertyString("authObject"), "action") == Utilities.PERMISSION_WRITE)
             assignments.add(currentUsername);
         return assignments;
     }
@@ -49,6 +49,6 @@ public class RoleManagementParticipantMapping extends DefaultParticipantPlugin{
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementPermission.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagementPermission");
+        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementParticipantMapping.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagement");
     }
 }

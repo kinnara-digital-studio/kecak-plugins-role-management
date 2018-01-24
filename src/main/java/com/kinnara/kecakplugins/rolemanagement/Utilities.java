@@ -97,11 +97,10 @@ public class Utilities {
         return null;
     }
 
-    public static int getPermission(String username, String authObject) {
+    public static int getPermission(String currentUser, String authObject, String objectType) {
         ApplicationContext appContext = AppUtil.getApplicationContext();
         AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
         WorkflowManager wfManager = (WorkflowManager)appContext.getBean("workflowManager");
-        WorkflowUserManager wfUserManager = wfManager.getWorkflowUserManager();
         FormDataDao formDataDao = (FormDataDao)appContext.getBean("formDataDao");
 
         AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
@@ -109,11 +108,9 @@ public class Utilities {
         Form formMasterRole = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_FORM_DEF_ID);
         Form formMasterRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
 
-        String currentUser = wfUserManager.getCurrentUsername();
-
         // get Master Auth Object
         FormRow rowMasterAuthObject = formDataDao.load(formMasterAuthObject, authObject);
-        if(rowMasterAuthObject == null || !"field".equals(rowMasterAuthObject.getProperty("type"))) {
+        if(rowMasterAuthObject == null || !objectType.equals(rowMasterAuthObject.getProperty("type"))) {
             LogUtil.warn(Utilities.class.getName(), "Field Authorization Object [" + authObject + "] not defined, grant WRITE access");
             return PERMISSION_WRITE;
         }

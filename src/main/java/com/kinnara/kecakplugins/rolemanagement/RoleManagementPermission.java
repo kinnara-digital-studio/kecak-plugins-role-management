@@ -86,7 +86,7 @@ public class RoleManagementPermission extends UserviewPermission implements Form
 
         WorkflowManager wfManager = (WorkflowManager)AppUtil.getApplicationContext().getBean("workflowManager");
         WorkflowUserManager wfUserManager = wfManager.getWorkflowUserManager();
-        return Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject")) != Utilities.PERMISSION_NONE;
+        return Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu") != Utilities.PERMISSION_NONE;
     }
 
     @Override
@@ -116,6 +116,6 @@ public class RoleManagementPermission extends UserviewPermission implements Form
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementPermission.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagementPermission");
+        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementPermission.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagement");
     }
 }

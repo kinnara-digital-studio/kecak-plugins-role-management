@@ -1,10 +1,10 @@
 [
   {
-    title : 'Role Management Permission',
+    title : '@@roleManagement.permission@@',
     properties : [
       {
         name : 'authObject',
-        label : 'Auth Object',
+        label : '@@roleManagement.authObject@@',
         type : 'selectbox',
         required : 'true',
         options_ajax : '[CONTEXT_PATH]/web/json/plugin/%s/service?type=menu'

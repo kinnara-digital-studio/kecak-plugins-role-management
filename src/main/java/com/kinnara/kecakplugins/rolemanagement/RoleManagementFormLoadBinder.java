@@ -103,7 +103,7 @@ public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
 
         String authObject = getPropertyString("authObject");
 
-        int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject);
+        int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "field");
 
         // process the element based on permission
         Consumer<Element> elementConsumer = e -> {
@@ -162,6 +162,6 @@ public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementFormLoadBinder.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagementFormLoadBinder");
+        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementFormLoadBinder.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagement");
     }
 }
