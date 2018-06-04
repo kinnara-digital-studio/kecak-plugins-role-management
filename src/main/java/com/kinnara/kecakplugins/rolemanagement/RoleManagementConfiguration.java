@@ -11,7 +11,7 @@ import java.util.Map;
 public class RoleManagementConfiguration extends DefaultApplicationPlugin implements PropertyEditable {
     @Override
     public String getName() {
-        return AppPluginUtil.getMessage("roleManagement.configurationTitle", getClassName(), "/messages/RoleManagement");
+        return AppPluginUtil.getMessage("roleManagement.configuration", getClassName(), "/messages/RoleManagement");
     }
 
     @Override
@@ -21,7 +21,7 @@ public class RoleManagementConfiguration extends DefaultApplicationPlugin implem
 
     @Override
     public String getDescription() {
-        return AppPluginUtil.getMessage("roleManagement.configurationDescription", getClassName(), "/messages/RoleManagement");
+        return AppPluginUtil.getMessage("roleManagement.configuration.description", getClassName(), "/messages/RoleManagement");
     }
 
     @Override
