@@ -2,6 +2,7 @@ package com.kinnara.kecakplugins.rolemanagement;
 
 import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
+import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.form.dao.FormDataDao;
 import org.joget.apps.form.lib.WorkflowFormBinder;
@@ -85,7 +86,7 @@ public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
 
     @Override
     public String getLabel() {
-        return "Role Management Form Binder";
+        return AppPluginUtil.getMessage("roleManagement.loadBinder", getClassName(), "/messages/RoleManagement");
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.kinnara.kecakplugins.rolemanagement;
 
+import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.workflow.model.DefaultParticipantPlugin;
 import org.joget.workflow.model.service.WorkflowManager;
@@ -13,7 +14,7 @@ import java.util.Map;
 public class RoleManagementParticipantMapping extends DefaultParticipantPlugin{
     @Override
     public String getName() {
-        return "Role Management Participant Mapping";
+        return AppPluginUtil.getMessage("roleManagement.participantMapping", getClassName(), "/messages/RoleManagement");
     }
 
     @Override

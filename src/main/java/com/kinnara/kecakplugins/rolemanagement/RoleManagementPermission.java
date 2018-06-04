@@ -2,6 +2,7 @@ package com.kinnara.kecakplugins.rolemanagement;
 
 import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
+import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.form.dao.FormDataDao;
 import org.joget.apps.form.model.Form;
@@ -33,7 +34,7 @@ public class RoleManagementPermission extends UserviewPermission implements Form
 
     @Override
     public String getName() {
-        return "Role Management Permission";
+        return AppPluginUtil.getMessage("roleManagement.permission", getClassName(), "/messages/RoleManagement");
     }
 
     @Override
