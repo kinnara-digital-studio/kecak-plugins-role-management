@@ -1,5 +1,6 @@
 package com.kinnara.kecakplugins.rolemanagement;
 
+import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.commons.util.LogUtil;
 import org.joget.plugin.base.DefaultApplicationPlugin;
@@ -10,7 +11,7 @@ import java.util.Map;
 public class RoleManagementConfiguration extends DefaultApplicationPlugin implements PropertyEditable {
     @Override
     public String getName() {
-        return "Role Management Form Binder";
+        return AppPluginUtil.getMessage("roleManagement.configurationTitle", getClassName(), "/messages/RoleManagement");
     }
 
     @Override
@@ -20,12 +21,17 @@ public class RoleManagementConfiguration extends DefaultApplicationPlugin implem
 
     @Override
     public String getDescription() {
-        return "Put this in Plugin Default Properties";
+        return AppPluginUtil.getMessage("roleManagement.configurationDescription", getClassName(), "/messages/RoleManagement");
     }
 
     @Override
     public Object execute(Map map) {
-        LogUtil.warn(getClassName(), "Not supposed to be implemented");
+        try {
+            throw new Exception("Not supposed to be implemented");
+        } catch (Exception e) {
+            LogUtil.error(getClassName(), e, e.getMessage());
+        }
+
         return null;
     }
 
