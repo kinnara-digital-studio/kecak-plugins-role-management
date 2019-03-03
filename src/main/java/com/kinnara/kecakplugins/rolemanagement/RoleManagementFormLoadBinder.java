@@ -58,7 +58,7 @@ public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
         String propertyObjectName = rowMasterAuthObject.getProperty("object_name");
         if(propertyObjectName != null && !propertyObjectName.isEmpty()) {
             Arrays.stream(propertyObjectName.split(";"))
-                    .map(id -> FormUtil.findElement(id, element, formData))
+                    .map(id -> FormUtil.findElement(id, element, formData, true))
                     .filter(Objects::nonNull)
                     .forEach(elementConsumer);
         } else {
