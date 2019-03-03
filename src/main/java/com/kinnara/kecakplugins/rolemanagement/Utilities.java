@@ -35,8 +35,8 @@ public class Utilities {
     public final static int PERMISSION_READ = 1;
     public final static int PERMISSION_WRITE = 3;
 
-    private final static Map<String, Form> formCache = new HashMap<String, Form>();
-    private final static Map<String, DataList> datalistCache = new HashMap<>();
+    private final static Map<String, Form> formCache = new WeakHashMap<>();
+    private final static Map<String, DataList> datalistCache = new WeakHashMap<>();
 
     public static Form generateForm(String formDefId) {
         return generateForm(AppUtil.getCurrentAppDefinition(), formDefId);
@@ -49,7 +49,7 @@ public class Utilities {
 
     public static Form generateForm(AppDefinition appDef, String formDefId) {
         // check in cache
-        if(formCache != null && formCache.containsKey(formDefId))
+        if(formCache.containsKey(formDefId))
             return formCache.get(formDefId);
 
         // proceed without cache
