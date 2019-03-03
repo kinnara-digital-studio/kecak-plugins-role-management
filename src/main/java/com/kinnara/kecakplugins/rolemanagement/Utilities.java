@@ -67,8 +67,7 @@ public class Utilities {
                 Form form = (Form)formService.createElementFromJson(json);
 
                 // put in cache if possible
-                if(formCache != null)
-                    formCache.put(formDefId, form);
+                formCache.put(formDefId, form);
 
                 return form;
             }
