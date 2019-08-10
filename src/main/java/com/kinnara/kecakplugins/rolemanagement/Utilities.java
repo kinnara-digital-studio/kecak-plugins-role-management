@@ -19,7 +19,6 @@ import org.joget.commons.util.LogUtil;
 import org.joget.directory.model.Group;
 import org.joget.directory.model.service.DirectoryManager;
 import org.joget.plugin.property.service.PropertyUtil;
-import org.joget.workflow.model.service.WorkflowManager;
 import org.springframework.context.ApplicationContext;
 
 import java.util.*;
@@ -156,7 +155,7 @@ public class Utilities {
             FormRowSet rowSetMasterRoleGroup = formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup.toString(), argumentsMasterRoleGroup.toArray(), null, null, null, null)
                     .stream()
                     .filter(formRow -> "true".equals(formRow.getProperty("everyone"))
-                            || (formRow.getProperty("groups") != null && roleGroupPattern.matcher(formRow.getProperty("groups")).find()))
+                            || (formRow.getProperty("users") != null && roleGroupPattern.matcher(formRow.getProperty("users")).find()))
                     .peek(rg -> {
                         if(debugMode) {
                             if("true".equals(rg.getProperty("everyone"))) {
