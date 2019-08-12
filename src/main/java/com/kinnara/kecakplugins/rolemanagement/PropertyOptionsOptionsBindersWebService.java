@@ -19,7 +19,13 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationPlugin implements PluginWebSupport{
     @Override
@@ -45,7 +51,8 @@ public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationP
     @Override
     public void webService(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String method = request.getMethod();
-        String objectType = request.getParameter("type");
+//        String objectType = request.getParameter("type");
+        String formDefId = request.getParameter("formDefId");
         if(!"GET".equals(method)) {
             String message = "Only accept GET method";
             response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, message);
@@ -57,9 +64,33 @@ public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationP
         AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
         AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
         FormDataDao formDataDao = (FormDataDao)appContext.getBean("formDataDao");
-        Form formAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
+        Form form = Utilities.generateForm(appDef, formDefId);
+        if(form == null) {
+            String message = "Form not found";
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, message);
+            LogUtil.warn(getClassName(), message);
+            return;
+        }
 
-        FormRowSet rowSetAuthObject = formDataDao.find(formAuthObject, objectType == null ? null : "WHERE e.customProperties.type = ?", objectType == null ? null : new String[] {objectType}, null, null, null, null);
+        final Pattern ignoredParamters = Pattern.compile("formDefId|pluginName|_");
+
+        StringBuilder query = new StringBuilder("WHERE 1 = 1 ");
+        List<String> arguments = new ArrayList<>();
+        ((Map<String, String[]>)request.getParameterMap()).entrySet().stream().filter(e -> !ignoredParamters.matcher(e.getKey()).find()).forEach(e -> {
+            LogUtil.info(getClassName(), "[" + e.getKey() + "][" + String.join(",", e.getValue()) + "]");
+            query.append(" AND e.customProperties.")
+                    .append(e.getKey()).append(" IN ")
+                    .append(Arrays.stream(e.getValue())
+                            .peek(arguments::add)
+                            .map(s -> "?")
+                            .collect(Collectors.joining(",", "(", ")")));
+        });
+
+        LogUtil.info(getClassName(), "query ["+query.toString()+"]");
+        LogUtil.info(getClassName(), "arguments ["+arguments.stream().collect(Collectors.joining(","))+"]");
+
+//        FormRowSet rowSetAuthObject = formDataDao.find(form, objectType == null ? null : "WHERE e.customProperties.type = ?", objectType == null ? null : new String[] {objectType}, null, null, null, null);
+        FormRowSet rowSetAuthObject = formDataDao.find(form, query.toString(), arguments.toArray(new String[0]), null, null, null, null);
         JSONArray jsonResult = new JSONArray();
         rowSetAuthObject.stream()
                 .map(FormRow::getId)

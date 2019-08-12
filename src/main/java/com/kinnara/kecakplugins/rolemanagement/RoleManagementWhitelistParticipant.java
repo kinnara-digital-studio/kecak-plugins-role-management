@@ -11,10 +11,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public class RoleManagementParticipantMapping extends DefaultParticipantPlugin{
+public class RoleManagementWhitelistParticipant extends DefaultParticipantPlugin {
     @Override
     public String getName() {
-        return AppPluginUtil.getMessage("roleManagement.participantMapping", getClassName(), "/messages/RoleManagement");
+        return AppPluginUtil.getMessage("roleManagement.whitelist", getClassName(), "/messages/RoleManagement");
     }
 
     @Override
@@ -50,6 +50,6 @@ public class RoleManagementParticipantMapping extends DefaultParticipantPlugin{
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementParticipantMapping.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagement");
+        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementWhitelistParticipant.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagement");
     }
 }

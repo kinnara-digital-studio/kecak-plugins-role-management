@@ -1,0 +1,14 @@
+[
+  {
+    title : '@@roleManagement.participant@@',
+    properties : [
+      {
+        name : 'roleGroups',
+        label : '@@roleManagement.roleGroup@@',
+        type : 'multiselect',
+        required : 'true',
+        options_ajax : '[CONTEXT_PATH]/web/json/plugin/%s/service?formDefId=master_role_group'
+      }
+    ]
+  }
+]

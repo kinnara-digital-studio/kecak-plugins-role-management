@@ -17,6 +17,7 @@ import org.joget.apps.form.model.FormRowSet;
 import org.joget.apps.form.service.FormService;
 import org.joget.commons.util.LogUtil;
 import org.joget.directory.model.Group;
+import org.joget.directory.model.User;
 import org.joget.directory.model.service.DirectoryManager;
 import org.joget.plugin.property.service.PropertyUtil;
 import org.springframework.context.ApplicationContext;
@@ -24,8 +25,10 @@ import org.springframework.context.ApplicationContext;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Utilities {
+    public final static String APP_ID = "roleMgmt";
     public final static String MASTER_ROLE_GROUP_FORM_DEF_ID = "master_role_group";
     public final static String MASTER_ROLE_FORM_DEF_ID = "master_role";
     public final static String MASTER_AUTH_OBJECT_FORM_DEF_ID = "master_auth_obj";
@@ -100,7 +103,6 @@ public class Utilities {
         try {
             ApplicationContext appContext = AppUtil.getApplicationContext();
             AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
-            Collection<PluginDefaultProperties> pluginDefaultProperties = AppUtil.getCurrentAppDefinition().getPluginDefaultPropertiesList();
             FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
 
             AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
@@ -108,15 +110,7 @@ public class Utilities {
             Form formMasterRole = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_FORM_DEF_ID);
             Form formMasterRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
 
-            // get Role Management Configuration
-            Map<String, Object> configurationProperties = pluginDefaultProperties.stream()
-                    .filter(p -> p.getId().equals(RoleManagementConfiguration.class.getName()))
-                    .findFirst()
-                    .map(p -> PropertyUtil.getPropertiesValueFromJson(p.getPluginProperties()))
-                    .orElse(new HashMap<>());
-
-            boolean debugMode = "true".equals(configurationProperties.get("debugMode"));
-
+            boolean debugMode = debugMode();
 
             if(debugMode)
                 LogUtil.info(Utilities.class.getName(), "============= Eximining auth. object [" + authObject + "] for user [" + currentUser + "]=============");
@@ -212,5 +206,53 @@ public class Utilities {
             LogUtil.error(Utilities.class.getName(), e, "Error while retrieving permission, grant WRITE access");
             return Utilities.PERMISSION_WRITE;
         }
+    }
+
+    static public List<String> getUsersFromRoleGroup(String roleGroups) {
+        final ApplicationContext appContext = AppUtil.getApplicationContext();
+        final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
+        final DirectoryManager directoryManager = (DirectoryManager) appContext.getBean("directoryManager");
+        final FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
+        final AppDefinition appDef = appDefinitionDao.loadById(APP_ID);
+        final Form formMasterRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
+
+        return Arrays.stream(roleGroups.split(";"))
+                .filter(s -> !s.isEmpty())
+                .map(s -> formDataDao.load(formMasterRoleGroup, s))
+                .filter(Objects::nonNull)
+                .filter(row -> !"true".equalsIgnoreCase(row.getProperty("everyone")))
+                .flatMap(row -> Stream.concat(
+                        Arrays.stream(row.getProperty("users").split(";"))
+                                .filter(s -> !s.isEmpty())
+                                .map(directoryManager::getUserById)
+                                .filter(Objects::nonNull)
+                                .map(User::getUsername),
+
+                        Arrays.stream(row.getProperty("groups").split(";"))
+                                .map(directoryManager::getUserByGroupId)
+                                .flatMap(Collection::stream)
+                                .map(User::getUsername)
+                ))
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    private static String getConfigurationString(String propertyName) {
+        ApplicationContext appContext = AppUtil.getApplicationContext();
+        AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
+        AppDefinition appDef = appDefinitionDao.loadById(APP_ID);
+        Collection<PluginDefaultProperties> pluginDefaultProperties = appDef.getPluginDefaultPropertiesList();
+        // get Role Management Configuration
+        Map<String, Object> configurationProperties = pluginDefaultProperties.stream()
+                .filter(p -> p.getId().equals(RoleManagementConfiguration.class.getName()))
+                .findFirst()
+                .map(p -> PropertyUtil.getPropertiesValueFromJson(p.getPluginProperties()))
+                .orElse(new HashMap<>());
+
+        return String.valueOf(configurationProperties.get(propertyName));
+    }
+
+    public static boolean debugMode() {
+        return "true".equalsIgnoreCase(getConfigurationString("debugMode"));
     }
 }

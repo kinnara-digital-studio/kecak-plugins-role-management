@@ -17,7 +17,8 @@ public class Activator implements BundleActivator {
         registrationList.add(context.registerService(PropertyOptionsOptionsBindersWebService.class.getName(), new PropertyOptionsOptionsBindersWebService(), null));
         registrationList.add(context.registerService(RoleManagementFormLoadBinder.class.getName(), new RoleManagementFormLoadBinder(), null));
         registrationList.add(context.registerService(RoleManagementPermission.class.getName(), new RoleManagementPermission(), null));
-        registrationList.add(context.registerService(RoleManagementParticipantMapping.class.getName(), new RoleManagementParticipantMapping(), null));
+        registrationList.add(context.registerService(RoleManagementRoleGroupParticipant.class.getName(), new RoleManagementRoleGroupParticipant(), null));
+        registrationList.add(context.registerService(RoleManagementWhitelistParticipant.class.getName(), new RoleManagementWhitelistParticipant(), null));
         registrationList.add(context.registerService(RoleManagementConfiguration.class.getName(), new RoleManagementConfiguration(), null));
     }
 

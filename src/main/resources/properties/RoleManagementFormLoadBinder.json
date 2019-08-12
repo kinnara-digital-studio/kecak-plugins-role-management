@@ -7,7 +7,7 @@
         label : '@@roleManagement.authObject@@',
         type : 'selectbox',
         required : 'true',
-        options_ajax : '[CONTEXT_PATH]/web/json/plugin/%s/service?type=field'
+        options_ajax : '[CONTEXT_PATH]/web/json/plugin/%s/service?formDefId=master_auth_obj&type=field'
       }
     ]
   }
