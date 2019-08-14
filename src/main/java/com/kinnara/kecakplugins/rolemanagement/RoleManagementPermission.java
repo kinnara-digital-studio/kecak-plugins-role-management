@@ -16,6 +16,11 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * @author aristo
+ *
+ *
+ */
 public class RoleManagementPermission extends UserviewPermission implements FormPermission {
     @Override
     public boolean isAuthorize() {

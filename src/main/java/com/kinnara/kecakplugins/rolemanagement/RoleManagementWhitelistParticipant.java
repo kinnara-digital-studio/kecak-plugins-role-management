@@ -11,6 +11,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @author aristo
+ *
+ * Used at start process participant mapping
+ */
 public class RoleManagementWhitelistParticipant extends DefaultParticipantPlugin {
     @Override
     public String getName() {

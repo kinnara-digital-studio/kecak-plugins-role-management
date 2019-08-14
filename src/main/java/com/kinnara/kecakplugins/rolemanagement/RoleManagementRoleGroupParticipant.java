@@ -7,6 +7,12 @@ import org.joget.workflow.model.DefaultParticipantPlugin;
 import java.util.Collection;
 import java.util.Map;
 
+/**
+ * @author aristo
+ *
+ * Automatically assign participant based on role group
+ *
+ */
 public class RoleManagementRoleGroupParticipant extends DefaultParticipantPlugin {
     @Override
     public String getName() {

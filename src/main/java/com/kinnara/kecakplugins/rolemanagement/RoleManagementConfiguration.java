@@ -8,6 +8,11 @@ import org.joget.plugin.property.model.PropertyEditable;
 
 import java.util.Map;
 
+/**
+ * @author aristo
+ *
+ * Common configuration for Role Management Application
+ */
 public class RoleManagementConfiguration extends DefaultApplicationPlugin implements PropertyEditable {
     @Override
     public String getName() {

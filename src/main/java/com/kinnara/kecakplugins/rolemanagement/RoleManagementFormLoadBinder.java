@@ -23,6 +23,11 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * @author aristo
+ *
+ *
+ */
 public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
     @Override
     public FormRowSet load(Element element, String primaryKey, FormData formData) {

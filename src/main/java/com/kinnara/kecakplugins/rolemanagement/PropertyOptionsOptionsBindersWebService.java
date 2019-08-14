@@ -27,6 +27,11 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * @author aristo
+ *
+ * Options binder for Role Management data
+ */
 public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationPlugin implements PluginWebSupport{
     @Override
     public String getName() {
