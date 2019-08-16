@@ -12,9 +12,10 @@ import org.joget.workflow.model.service.WorkflowManager;
 import org.joget.workflow.model.service.WorkflowUserManager;
 import org.springframework.context.ApplicationContext;
 
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author aristo
@@ -36,6 +37,7 @@ public class RoleManagementPermission extends UserviewPermission implements Form
         final int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "menu");
         final FormData formData = getFormData();
         final Element element = getElement();
+        final Form currentForm = FormUtil.findRootForm(element) == null && element instanceof Form ? (Form) element : FormUtil.findRootForm(element);
 
         // process the element based on permission
         Consumer<Element> elementConsumer = e -> {
@@ -51,16 +53,19 @@ public class RoleManagementPermission extends UserviewPermission implements Form
         };
 
         Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
-        FormRow rowMasterAuthObject = formDataDao.load(formMasterAuthObject, authObject);
-        String propertyObjectName = rowMasterAuthObject.getProperty("object_name");
-        if(propertyObjectName != null && !propertyObjectName.isEmpty()) {
-            Arrays.stream(propertyObjectName.split(";"))
-                    .map(id -> FormUtil.findElement(id, element, formData, true))
-                    .filter(Objects::nonNull)
-                    .forEach(elementConsumer);
+        List<Element> fields = Optional.ofNullable(formMasterAuthObject)
+                .map(f -> formDataDao.load(f, authObject))
+                .map(fr -> fr.getProperty("object_name"))
+                .map(s -> s.split(";"))
+                .map(Arrays::stream)
+                .orElse(Stream.empty())
+                .map(id -> FormUtil.findElement(id, currentForm, formData, true))
+                .collect(Collectors.toList());
+
+        if(fields.isEmpty()) {
+            Optional.ofNullable(element).map(Element::getChildren).map(Collection::stream).orElse(Stream.empty()).forEach(elementConsumer);
         } else {
-            element.getChildren(formData)
-                    .forEach(elementConsumer);
+            fields.forEach(elementConsumer);
         }
 
         return Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu") != Utilities.PERMISSION_NONE;
