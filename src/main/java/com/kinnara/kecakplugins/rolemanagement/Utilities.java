@@ -22,6 +22,7 @@ import org.joget.directory.model.service.DirectoryManager;
 import org.joget.plugin.property.service.PropertyUtil;
 import org.springframework.context.ApplicationContext;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -216,8 +217,12 @@ public class Utilities {
         final AppDefinition appDef = appDefinitionDao.loadById(APP_ID);
         final Form formMasterRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
 
-        return Arrays.stream(roleGroups.split(";"))
+        return Optional.ofNullable(roleGroups)
+                .map(s -> s.split(";"))
+                .map(Arrays::stream)
+                .orElse(Stream.empty())
                 .filter(s -> !s.isEmpty())
+                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup groups [" + s + "]"))
                 .map(s -> formDataDao.load(formMasterRoleGroup, s))
                 .filter(Objects::nonNull)
                 .filter(row -> !"true".equalsIgnoreCase(row.getProperty("everyone")))
@@ -234,6 +239,7 @@ public class Utilities {
                                 .map(User::getUsername)
                 ))
                 .filter(s -> !s.isEmpty())
+                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup username [" + s + "]"))
                 .collect(Collectors.toList());
     }
 
