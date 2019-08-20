@@ -22,7 +22,6 @@ import org.joget.directory.model.service.DirectoryManager;
 import org.joget.plugin.property.service.PropertyUtil;
 import org.springframework.context.ApplicationContext;
 
-import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
