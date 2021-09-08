@@ -61,7 +61,7 @@ public class RoleManagementPermission extends UserviewPermission implements Form
         Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
         List<Element> fields = Optional.ofNullable(formMasterAuthObject)
                 .map(f -> formDataDao.load(f, authObject))
-                .map(fr -> fr.getProperty("object_name"))
+                .map(r -> r.getProperty("object_name"))
                 .map(s -> s.split(";"))
                 .map(Arrays::stream)
                 .orElse(Stream.empty())

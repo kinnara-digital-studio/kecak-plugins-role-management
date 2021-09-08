@@ -37,7 +37,6 @@ public class Utilities {
     public final static int PERMISSION_READ = 1;
     public final static int PERMISSION_WRITE = 3;
 
-    private final static Map<String, Form> formCache = new WeakHashMap<>();
     private final static Map<String, DataList> datalistCache = new WeakHashMap<>();
 
     public static Form generateForm(String formDefId) {
@@ -51,8 +50,8 @@ public class Utilities {
 
     public static Form generateForm(AppDefinition appDef, String formDefId) {
         // check in cache
-        if(formCache.containsKey(formDefId))
-            return formCache.get(formDefId);
+//        if(formCache.containsKey(formDefId))
+//            return formCache.get(formDefId);
 
         // proceed without cache
         ApplicationContext appContext = AppUtil.getApplicationContext();
@@ -69,7 +68,7 @@ public class Utilities {
                 Form form = (Form)formService.createElementFromJson(json);
 
                 // put in cache if possible
-                formCache.put(formDefId, form);
+//                formCache.put(formDefId, form);
 
                 return form;
             }
@@ -146,10 +145,14 @@ public class Utilities {
 
             // get Master Role Group
             Pattern roleGroupPattern = Pattern.compile(argumentsMasterRoleGroup.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
-            FormRowSet rowSetMasterRoleGroup = formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup.toString(), argumentsMasterRoleGroup.toArray(), null, null, null, null)
+
+            LogUtil.info(Utilities.class.getName(), "conditionMasterRoleGroup ["+conditionMasterRoleGroup+"] roleGroupPattern ["+ roleGroupPattern +"] argumentsMasterRoleGroup ["+String.join(";", argumentsMasterRoleGroup)+"]");
+
+            FormRowSet rowSetMasterRoleGroup = formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup, argumentsMasterRoleGroup.toArray(), null, null, null, null)
                     .stream()
-                    .filter(formRow -> "true".equals(formRow.getProperty("everyone"))
-                            || (formRow.getProperty("users") != null && roleGroupPattern.matcher(formRow.getProperty("users")).find()))
+                    .filter(row -> !row.getDeleted())
+                    .filter(row -> "true".equals(row.getProperty("everyone"))
+                            || (row.getProperty("users") != null && roleGroupPattern.matcher(row.getProperty("users")).find()))
                     .peek(rg -> {
                         if(debugMode) {
                             if("true".equals(rg.getProperty("everyone"))) {
