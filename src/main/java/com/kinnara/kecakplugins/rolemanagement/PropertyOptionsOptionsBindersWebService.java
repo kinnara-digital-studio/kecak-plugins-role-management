@@ -19,12 +19,10 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author aristo
@@ -90,13 +88,12 @@ public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationP
                             .collect(Collectors.joining(",", "(", ")")));
         });
 
-        LogUtil.info(getClassName(), "query ["+query.toString()+"]");
-        LogUtil.info(getClassName(), "arguments ["+arguments.stream().collect(Collectors.joining(","))+"]");
-
 //        FormRowSet rowSetAuthObject = formDataDao.find(form, objectType == null ? null : "WHERE e.customProperties.type = ?", objectType == null ? null : new String[] {objectType}, null, null, null, null);
         FormRowSet rowSetAuthObject = formDataDao.find(form, query.toString(), arguments.toArray(new String[0]), null, null, null, null);
         JSONArray jsonResult = new JSONArray();
-        rowSetAuthObject.stream()
+        Optional.ofNullable(rowSetAuthObject)
+                .map(Collection::stream)
+                .orElseGet(Stream::empty)
                 .map(FormRow::getId)
                 .map(id -> {
                     try {

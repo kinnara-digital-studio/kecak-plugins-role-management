@@ -145,9 +145,6 @@ public class Utilities {
 
             // get Master Role Group
             Pattern roleGroupPattern = Pattern.compile(argumentsMasterRoleGroup.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
-
-            LogUtil.info(Utilities.class.getName(), "conditionMasterRoleGroup ["+conditionMasterRoleGroup+"] roleGroupPattern ["+ roleGroupPattern +"] argumentsMasterRoleGroup ["+String.join(";", argumentsMasterRoleGroup)+"]");
-
             FormRowSet rowSetMasterRoleGroup = formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup, argumentsMasterRoleGroup.toArray(), null, null, null, null)
                     .stream()
                     .filter(row -> !row.getDeleted())
