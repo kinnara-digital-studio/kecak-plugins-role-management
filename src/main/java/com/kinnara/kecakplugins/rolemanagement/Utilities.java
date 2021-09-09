@@ -20,6 +20,7 @@ import org.joget.directory.model.Group;
 import org.joget.directory.model.User;
 import org.joget.directory.model.service.DirectoryManager;
 import org.joget.plugin.property.service.PropertyUtil;
+import org.joget.workflow.util.WorkflowUtil;
 import org.springframework.context.ApplicationContext;
 
 import java.util.*;
@@ -65,7 +66,7 @@ public class Utilities {
             FormDefinition formDef = formDefinitionDao.loadById(formDefId, appDef);
             if (formDef != null) {
                 String json = formDef.getJson();
-                Form form = (Form)formService.createElementFromJson(json);
+                Form form = (Form) formService.createElementFromJson(json);
 
                 // put in cache if possible
 //                formCache.put(formDefId, form);
@@ -81,7 +82,7 @@ public class Utilities {
     }
 
     public static DataList generateDataList(AppDefinition appDef, String dataListId) {
-        ApplicationContext applicationContext     = AppUtil.getApplicationContext();
+        ApplicationContext applicationContext = AppUtil.getApplicationContext();
 
         if (datalistCache.containsKey(dataListId))
             return datalistCache.get(dataListId);
@@ -111,13 +112,13 @@ public class Utilities {
 
             boolean debugMode = debugMode();
 
-            if(debugMode)
+            if (debugMode)
                 LogUtil.info(Utilities.class.getName(), "============= Eximining auth. object [" + authObject + "] for user [" + currentUser + "]=============");
 
             // get Master Auth Object
             FormRow rowMasterAuthObject = formDataDao.load(formMasterAuthObject, authObject);
             if (rowMasterAuthObject == null || !objectType.equals(rowMasterAuthObject.getProperty("type"))) {
-                if(debugMode)
+                if (debugMode)
                     LogUtil.warn(Utilities.class.getName(), "Field Authorization Object [" + authObject + "] not defined, grant WRITE access");
                 return PERMISSION_WRITE;
             }
@@ -127,38 +128,42 @@ public class Utilities {
             final List<String> argumentsMasterRoleGroup = new ArrayList<>();
             conditionMasterRoleGroup.append(" AND e.customProperties.users LIKE '%'||?||'%'");
             argumentsMasterRoleGroup.add(currentUser);
-            Collection<Group> groups = directoryManager.getGroupByUsername(currentUser);
+            final boolean isCurrentUserAnonymous = WorkflowUtil.isCurrentUserAnonymous();
+            final Collection<Group> groups = directoryManager.getGroupByUsername(currentUser);
             if (groups != null) {
                 // filter by group
                 groups.stream()
                         .map(Group::getName)
                         .peek(g -> {
-                            if(debugMode)
-                                LogUtil.info(Utilities.class.getName(), "User [" + currentUser + "] is found in Directory Group ["+ g +"]");
+                            if (debugMode)
+                                LogUtil.info(Utilities.class.getName(), "User [" + currentUser + "] is found in Directory Group [" + g + "]");
                         })
                         .forEach(name -> {
                             conditionMasterRoleGroup.append(" OR e.customProperties.groups LIKE '%'||?||'%'");
                             argumentsMasterRoleGroup.add(name);
                         });
             }
-            conditionMasterRoleGroup.append(" OR e.customProperties.everyone = 'true'");
+            conditionMasterRoleGroup.append(" OR e.customProperties.everyone in ('true', 'loggedIn')");
 
             // get Master Role Group
             Pattern roleGroupPattern = Pattern.compile(argumentsMasterRoleGroup.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
             FormRowSet rowSetMasterRoleGroup = formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup, argumentsMasterRoleGroup.toArray(), null, null, null, null)
                     .stream()
                     .filter(row -> !row.getDeleted())
-                    .filter(row -> "true".equals(row.getProperty("everyone"))
-                            || (row.getProperty("users") != null && roleGroupPattern.matcher(row.getProperty("users")).find()))
-                    .peek(rg -> {
-                        if(debugMode) {
-                            if("true".equals(rg.getProperty("everyone"))) {
-                                LogUtil.info(Utilities.class.getName(), "Role Group [" + rg.getId() + "] if for everyone");
+                    .filter(row -> {
+                        String everyOne = row.getProperty("everyone", "");
+                        String users = row.getProperty("users", "");
+                        return "true".equals(everyOne) || ("loggedIn".equals(everyOne) && !isCurrentUserAnonymous)
+                                || roleGroupPattern.matcher(users).find();
+                    })
+                    .peek(row -> {
+                        if (debugMode) {
+                            final String everyone = row.getProperty("everyone");
+                            if ("true".equals(everyone) || "loggedIn".equals(everyone)) {
+                                LogUtil.info(Utilities.class.getName(), "Role Group [" + row.getId() + "] if for everyone [" + everyone + "]");
                             } else {
-                                LogUtil.info(Utilities.class.getName(), "User [" + currentUser + "] is found in Role Group [" + rg.getId() + "]");
+                                LogUtil.info(Utilities.class.getName(), "User [" + currentUser + "] is found in Role Group [" + row.getId() + "]");
                             }
-
-
                         }
                     })
                     .collect(FormRowSet::new, FormRowSet::add, FormRowSet::addAll);
@@ -186,12 +191,12 @@ public class Utilities {
                     .filter(row -> patternAuthObject.matcher(row.getProperty("auth_object")).find())
                     .peek(r -> {
                         // print log in debug mode
-                        if(debugMode)
+                        if (debugMode)
                             LogUtil.info(Utilities.class.getName(), "Loading role [" + r.getId() + "]");
                     })
                     .map(r -> r.getProperty("permission"))
                     .peek(p -> {
-                        if(debugMode)
+                        if (debugMode)
                             LogUtil.info(Utilities.class.getName(), "Current role has [" + p + "] permission");
                     })
                     .map(p ->
