@@ -40,7 +40,7 @@ public class RoleManagementPermission extends UserviewPermission implements Form
 
         String authObject = getPropertyString("authObject");
 
-        final int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "menu");
+        final int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "menu", Utilities.isMobile(getFormData()));
         final FormData formData = getFormData();
         final Element element = getElement();
         final Form currentForm = FormUtil.findRootForm(element) == null && element instanceof Form ? (Form) element : FormUtil.findRootForm(element);
@@ -74,7 +74,7 @@ public class RoleManagementPermission extends UserviewPermission implements Form
             fields.forEach(elementConsumer);
         }
 
-        return Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu") != Utilities.PERMISSION_NONE;
+        return Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu", Utilities.isMobile(getFormData())) != Utilities.PERMISSION_NONE;
     }
 
     @Override

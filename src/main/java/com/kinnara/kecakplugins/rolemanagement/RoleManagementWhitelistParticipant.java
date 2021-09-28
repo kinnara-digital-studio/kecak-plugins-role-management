@@ -38,7 +38,7 @@ public class RoleManagementWhitelistParticipant extends DefaultParticipantPlugin
         WorkflowUserManager wfUserManager = wfManager.getWorkflowUserManager();
         String currentUsername = wfUserManager.getCurrentUsername();
         List<String> assignments = new ArrayList<>();
-        if(Utilities.getPermission(currentUsername, getPropertyString("authObject"), "action") == Utilities.PERMISSION_WRITE)
+        if(Utilities.getPermission(currentUsername, getPropertyString("authObject"), "action", false) == Utilities.PERMISSION_WRITE)
             assignments.add(currentUsername);
         return assignments;
     }

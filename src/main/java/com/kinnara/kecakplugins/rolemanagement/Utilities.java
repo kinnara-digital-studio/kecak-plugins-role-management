@@ -12,6 +12,7 @@ import org.joget.apps.datalist.model.DataList;
 import org.joget.apps.datalist.service.DataListService;
 import org.joget.apps.form.dao.FormDataDao;
 import org.joget.apps.form.model.Form;
+import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.model.FormRow;
 import org.joget.apps.form.model.FormRowSet;
 import org.joget.apps.form.service.FormService;
@@ -23,6 +24,7 @@ import org.joget.plugin.property.service.PropertyUtil;
 import org.joget.workflow.util.WorkflowUtil;
 import org.springframework.context.ApplicationContext;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -37,6 +39,13 @@ public class Utilities {
     public final static int PERMISSION_NONE = 0;
     public final static int PERMISSION_READ = 1;
     public final static int PERMISSION_WRITE = 3;
+
+    public final static int PLATFORM_WEB = 1;
+    public final static int PLATFORM_MOBILE_APP = 2;
+    public final static int PLATFORM_BOTH = 3;
+    public final static int PLATFORM_NONE = 0;
+
+    public final static String PARAMETER_NAME_MOBILE = "_mobile";
 
     private final static Map<String, DataList> datalistCache = new WeakHashMap<>();
 
@@ -99,7 +108,7 @@ public class Utilities {
         return null;
     }
 
-    public static int getPermission(String currentUser, String authObject, String objectType) {
+    public static int getPermission(String currentUser, String authObject, String objectType, boolean isMobile) {
         try {
             ApplicationContext appContext = AppUtil.getApplicationContext();
             AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
@@ -113,7 +122,7 @@ public class Utilities {
             boolean debugMode = debugMode();
 
             if (debugMode)
-                LogUtil.info(Utilities.class.getName(), "============= Eximining auth. object [" + authObject + "] for user [" + currentUser + "]=============");
+                LogUtil.info(Utilities.class.getName(), "============= Eximining auth. object [" + authObject + "] for user [" + currentUser + "] platform mobile [" + isMobile + "]=============");
 
             // get Master Auth Object
             FormRow rowMasterAuthObject = formDataDao.load(formMasterAuthObject, authObject);
@@ -186,27 +195,39 @@ public class Utilities {
             // get Master Role
             FormRowSet rowSetMasterRole = formDataDao.find(formMasterRole, "WHERE 1 = 1 " + conditionsRoleId + conditionAuthObject, null, null, null, null, null);
             Pattern patternAuthObject = Pattern.compile("\\b" + rowMasterAuthObject.getId() + "\\b");
-            int permission = rowSetMasterRole
+            int isPermitted = rowSetMasterRole
                     .stream()
                     .filter(row -> patternAuthObject.matcher(row.getProperty("auth_object")).find())
-                    .peek(r -> {
-                        // print log in debug mode
-                        if (debugMode)
-                            LogUtil.info(Utilities.class.getName(), "Loading role [" + r.getId() + "]");
+                    .map(r -> {
+                        final String permission = r.getProperty("permission");
+                        final String platform = r.getProperty("platform");
+
+                        if (debugMode) {
+                            LogUtil.info(Utilities.class.getName(), "Role [" + r.getId() + "] has [" + permission + "] permission in platform [" + platform + "]");
+                        }
+
+                        if(isMobile && !platform.contains("mobileapp")) {
+                            return Utilities.PERMISSION_NONE;
+                        }
+
+                        if(!isMobile && !platform.contains("web")) {
+                            return Utilities.PERMISSION_NONE;
+                        }
+
+                        if("read".equals(permission)) {
+                            return Utilities.PERMISSION_READ;
+                        } else if("write".equals(permission)) {
+                            return Utilities.PERMISSION_WRITE;
+                        } else {
+                            return Utilities.PERMISSION_NONE;
+                        }
+
+
                     })
-                    .map(r -> r.getProperty("permission"))
-                    .peek(p -> {
-                        if (debugMode)
-                            LogUtil.info(Utilities.class.getName(), "Current role has [" + p + "] permission");
-                    })
-                    .map(p ->
-                            "read".equals(p) ? Utilities.PERMISSION_READ
-                                    : "write".equals(p) ? Utilities.PERMISSION_WRITE
-                                    : Utilities.PERMISSION_NONE)
                     .reduce((p1, p2) -> p1 | p2)
                     .orElse(Utilities.PERMISSION_NONE);
 
-            return permission;
+            return isPermitted;
         } catch (Exception e) {
             LogUtil.error(Utilities.class.getName(), e, "Error while retrieving permission, grant WRITE access");
             return Utilities.PERMISSION_WRITE;
@@ -260,6 +281,14 @@ public class Utilities {
                 .orElse(new HashMap<>());
 
         return String.valueOf(configurationProperties.get(propertyName));
+    }
+
+    public static boolean isMobile(@Nullable FormData formData) {
+        return Optional
+                .ofNullable(formData)
+                .map(FormData::getRequestParams)
+                .map(m -> m.containsKey(PARAMETER_NAME_MOBILE))
+                .orElse(false);
     }
 
     public static boolean debugMode() {

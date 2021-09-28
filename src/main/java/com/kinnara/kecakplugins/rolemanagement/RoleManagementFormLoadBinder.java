@@ -35,7 +35,8 @@ public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
 
         String authObject = getPropertyString("authObject");
 
-        int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "field");
+        boolean isMobile = Utilities.isMobile(formData);
+        int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "field", isMobile);
 
         // process the element based on permission
         Consumer<Element> elementConsumer = e -> {
