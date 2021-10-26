@@ -13,6 +13,7 @@ import org.joget.apps.form.service.FormUtil;
 import org.joget.apps.userview.model.UserviewPermission;
 import org.joget.workflow.model.service.WorkflowManager;
 import org.joget.workflow.model.service.WorkflowUserManager;
+import org.kecak.apps.userview.model.Platform;
 import org.springframework.context.ApplicationContext;
 
 import java.util.Arrays;
@@ -40,7 +41,7 @@ public class RoleManagementPermission extends UserviewPermission implements Form
 
         String authObject = getPropertyString("authObject");
 
-        final int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "menu", Utilities.isMobile(getFormData()));
+        final int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "menu", getPlatform() == Platform.MOBILE);
         final FormData formData = getFormData();
         final Element element = getElement();
         final Form currentForm = FormUtil.findRootForm(element) == null && element instanceof Form ? (Form) element : FormUtil.findRootForm(element);
@@ -74,7 +75,7 @@ public class RoleManagementPermission extends UserviewPermission implements Form
             fields.forEach(elementConsumer);
         }
 
-        return Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu", Utilities.isMobile(getFormData())) != Utilities.PERMISSION_NONE;
+        return Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu", getPlatform() == Platform.MOBILE) != Utilities.PERMISSION_NONE;
     }
 
     @Override

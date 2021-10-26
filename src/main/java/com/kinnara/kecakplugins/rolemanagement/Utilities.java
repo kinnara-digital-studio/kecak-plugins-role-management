@@ -45,7 +45,7 @@ public class Utilities {
     public final static int PLATFORM_BOTH = 3;
     public final static int PLATFORM_NONE = 0;
 
-    public final static String PARAMETER_NAME_MOBILE = "_mobile";
+//    public final static String PARAMETER_NAME_MOBILE = "_mobile";
 
     private final static Map<String, DataList> datalistCache = new WeakHashMap<>();
 
@@ -108,7 +108,11 @@ public class Utilities {
         return null;
     }
 
-    public static int getPermission(String currentUser, String authObject, String objectType, boolean isMobile) {
+    public static int getPermission(String currentUser, String authObject, String objectType) {
+        return getPermission(currentUser, authObject, objectType, null);
+    }
+
+    public static int getPermission(String currentUser, String authObject, String objectType, @Nullable Boolean isMobile) {
         try {
             ApplicationContext appContext = AppUtil.getApplicationContext();
             AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
@@ -206,11 +210,11 @@ public class Utilities {
                             LogUtil.info(Utilities.class.getName(), "Role [" + r.getId() + "] has [" + permission + "] permission in platform [" + platform + "]");
                         }
 
-                        if(isMobile && !platform.contains("mobileapp")) {
+                        if(isMobile != null && isMobile && !platform.contains("mobileapp")) {
                             return Utilities.PERMISSION_NONE;
                         }
 
-                        if(!isMobile && !platform.contains("web")) {
+                        if(isMobile != null && !isMobile && !platform.contains("web")) {
                             return Utilities.PERMISSION_NONE;
                         }
 
@@ -281,14 +285,6 @@ public class Utilities {
                 .orElse(new HashMap<>());
 
         return String.valueOf(configurationProperties.get(propertyName));
-    }
-
-    public static boolean isMobile(@Nullable FormData formData) {
-        return Optional
-                .ofNullable(formData)
-                .map(FormData::getRequestParams)
-                .map(m -> m.containsKey(PARAMETER_NAME_MOBILE))
-                .orElse(false);
     }
 
     public static boolean debugMode() {
