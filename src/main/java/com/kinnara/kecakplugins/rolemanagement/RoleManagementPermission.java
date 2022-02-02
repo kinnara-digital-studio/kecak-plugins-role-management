@@ -47,7 +47,7 @@ public class RoleManagementPermission extends UserviewPermission implements Form
         final Form currentForm = FormUtil.findRootForm(element) == null && element instanceof Form ? (Form) element : FormUtil.findRootForm(element);
 
         // process the element based on permission
-        Consumer<Element> elementConsumer = e -> {
+        final Consumer<Element> elementConsumer = e -> {
             if (permission != Utilities.PERMISSION_WRITE) {
                 // if don't have write access, set as readonly
                 FormUtil.setReadOnlyProperty(e);
@@ -59,8 +59,8 @@ public class RoleManagementPermission extends UserviewPermission implements Form
             }
         };
 
-        Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
-        List<Element> fields = Optional.ofNullable(formMasterAuthObject)
+        final Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
+        final List<Element> fields = Optional.ofNullable(formMasterAuthObject)
                 .map(f -> formDataDao.load(f, authObject))
                 .map(r -> r.getProperty("object_name"))
                 .map(s -> s.split(";"))
@@ -70,7 +70,11 @@ public class RoleManagementPermission extends UserviewPermission implements Form
                 .collect(Collectors.toList());
 
         if(fields.isEmpty()) {
-            Optional.ofNullable(element).map(Element::getChildren).map(Collection::stream).orElse(Stream.empty()).forEach(elementConsumer);
+            Optional.ofNullable(element)
+                    .map(Element::getChildren)
+                    .map(Collection::stream)
+                    .orElseGet(Stream::empty)
+                    .forEach(elementConsumer);
         } else {
             fields.forEach(elementConsumer);
         }
@@ -105,6 +109,14 @@ public class RoleManagementPermission extends UserviewPermission implements Form
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementPermission.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagement");
+        final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
+        final String appId = Optional.ofNullable(appDefinition).map(AppDefinition::getAppId).orElse("");
+        final Long appVersion = Optional.ofNullable(appDefinition).map(AppDefinition::getVersion).orElse(0L);
+        final String[] args = new String[] {
+                appId,
+                appVersion.toString(),
+                PropertyOptionsOptionsBindersWebService.class.getName()
+        };
+        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementPermission.json", args,  false, "/messages/RoleManagement");
     }
 }

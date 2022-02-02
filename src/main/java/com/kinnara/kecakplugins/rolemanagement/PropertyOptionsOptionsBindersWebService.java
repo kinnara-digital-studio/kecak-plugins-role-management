@@ -1,5 +1,7 @@
 package com.kinnara.kecakplugins.rolemanagement;
 
+import com.kinnarastudio.commons.Try;
+import com.kinnarastudio.commons.jsonstream.JSONCollectors;
 import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.service.AppUtil;
@@ -11,8 +13,8 @@ import org.joget.commons.util.LogUtil;
 import org.joget.plugin.base.DefaultApplicationPlugin;
 import org.joget.plugin.base.PluginWebSupport;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
+import org.kecak.apps.exception.ApiException;
 import org.springframework.context.ApplicationContext;
 
 import javax.servlet.ServletException;
@@ -26,10 +28,10 @@ import java.util.stream.Stream;
 
 /**
  * @author aristo
- *
+ * <p>
  * Options binder for Role Management data
  */
-public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationPlugin implements PluginWebSupport{
+public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationPlugin implements PluginWebSupport {
     @Override
     public String getName() {
         return "Options Binders Web Service";
@@ -52,65 +54,63 @@ public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationP
 
     @Override
     public void webService(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String method = request.getMethod();
-//        String objectType = request.getParameter("type");
-        String formDefId = request.getParameter("formDefId");
-        if(!"GET".equals(method)) {
-            String message = "Only accept GET method";
-            response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, message);
-            LogUtil.warn(getClassName(), message);
-            return;
-        }
+        try {
+            final String method = request.getMethod();
+            final String formDefId = request.getParameter("formDefId");
+            if (!"GET".equals(method)) {
+                String message = "Only accept GET method";
+                throw new ApiException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, message);
+            }
 
-        ApplicationContext appContext = AppUtil.getApplicationContext();
-        AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
-        AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
-        FormDataDao formDataDao = (FormDataDao)appContext.getBean("formDataDao");
-        Form form = Utilities.generateForm(appDef, formDefId);
-        if(form == null) {
-            String message = "Form not found";
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, message);
-            LogUtil.warn(getClassName(), message);
-            return;
-        }
+            final ApplicationContext appContext = AppUtil.getApplicationContext();
+            final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
+            final AppDefinition appDefRoleManagement = appDefinitionDao.loadById("roleMgmt");
+            final AppDefinition currentAppDefinition = AppUtil.getCurrentAppDefinition();
+            final FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
 
-        final Pattern ignoredParamters = Pattern.compile("formDefId|pluginName|_");
+            final Form form = Utilities.generateForm(appDefRoleManagement, formDefId);
+            if (form == null) {
+                String message = "Form not found";
+                throw new ApiException(HttpServletResponse.SC_NOT_FOUND, message);
+            }
 
-        StringBuilder query = new StringBuilder("WHERE 1 = 1 ");
-        List<String> arguments = new ArrayList<>();
-        ((Map<String, String[]>)request.getParameterMap()).entrySet().stream().filter(e -> !ignoredParamters.matcher(e.getKey()).find()).forEach(e -> {
-            LogUtil.info(getClassName(), "[" + e.getKey() + "][" + String.join(",", e.getValue()) + "]");
-            query.append(" AND e.customProperties.")
-                    .append(e.getKey()).append(" IN ")
-                    .append(Arrays.stream(e.getValue())
-                            .peek(arguments::add)
-                            .map(s -> "?")
-                            .collect(Collectors.joining(",", "(", ")")));
-        });
+            final Pattern ignoredParameters = Pattern.compile("appId|appVersion|formDefId|pluginName|_");
+            final StringBuilder query = new StringBuilder("WHERE (e.customProperties.app_id in (?, '') or e.customProperties.app_id is null)");
+            final List<String> arguments = new ArrayList<>();
+            arguments.add(currentAppDefinition.getAppId());
 
-//        FormRowSet rowSetAuthObject = formDataDao.find(form, objectType == null ? null : "WHERE e.customProperties.type = ?", objectType == null ? null : new String[] {objectType}, null, null, null, null);
-        FormRowSet rowSetAuthObject = formDataDao.find(form, query.toString(), arguments.toArray(new String[0]), null, null, null, null);
-        JSONArray jsonResult = new JSONArray();
-        Optional.ofNullable(rowSetAuthObject)
-                .map(Collection::stream)
-                .orElseGet(Stream::empty)
-                .map(FormRow::getId)
-                .map(id -> {
-                    try {
+            ((Map<String, String[]>) request.getParameterMap()).entrySet()
+                    .stream()
+                    .filter(e -> !ignoredParameters.matcher(e.getKey()).find())
+                    .forEach(e -> {
+                        query.append(" AND e.customProperties.")
+                                .append(e.getKey()).append(" IN ")
+                                .append(Arrays.stream(e.getValue())
+                                        .peek(arguments::add)
+                                        .map(s -> "?")
+                                        .collect(Collectors.joining(",", "(", ")")));
+                    });
+
+            final FormRowSet rowSetAuthObject = formDataDao.find(form, query.toString(), arguments.toArray(new String[0]), null, null, null, null);
+            final JSONArray jsonResult = Optional.ofNullable(rowSetAuthObject)
+                    .map(Collection::stream)
+                    .orElseGet(Stream::empty)
+                    .map(FormRow::getId)
+                    .map(Try.onFunction(s -> {
                         JSONObject jsonObject = new JSONObject();
-                        jsonObject.put("value", id);
-                        jsonObject.put("label", id);
+                        jsonObject.put("value", s);
+                        jsonObject.put("label", s);
                         return jsonObject;
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        return null;
-                    }
-                })
-                .forEach(jsonResult::put);
+                    }))
+                    .collect(JSONCollectors.toJSONArray());
 
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType("application/json");
-        response.getWriter().write(jsonResult.toString());
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentType("application/json");
+            response.getWriter().write(jsonResult.toString());
+        } catch (ApiException e) {
+            LogUtil.error(getClassName(), e, e.getMessage());
+            response.sendError(e.getErrorCode(), e.getMessage());
+        }
     }
 
     @Override
