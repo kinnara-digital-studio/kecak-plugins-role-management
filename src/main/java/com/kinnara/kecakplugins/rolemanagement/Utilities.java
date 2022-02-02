@@ -169,8 +169,11 @@ public class Utilities {
                     .filter(row -> {
                         String everyOne = row.getProperty("everyone", "");
                         String users = row.getProperty("users", "");
-                        return "true".equals(everyOne) || ("loggedIn".equals(everyOne) && !isCurrentUserAnonymous)
-                                || roleGroupPattern.matcher(users).find();
+                        String userGroups = row.getProperty("groups");
+                        return "true".equals(everyOne)
+                                || ("loggedIn".equals(everyOne) && !isCurrentUserAnonymous)
+                                || roleGroupPattern.matcher(users).find()
+                                || Utilities.getUsersFromRoleGroup(userGroups).contains(users);
                     })
                     .peek(row -> {
                         if (debugMode) {
@@ -254,9 +257,10 @@ public class Utilities {
                                 .map(User::getUsername),
 
                         Arrays.stream(row.getProperty("groups").split(";"))
-                                .map(directoryManager::getUserByGroupId)
+                                .map(directoryManager::getUserByGroupName)
                                 .flatMap(Collection::stream)
                                 .map(User::getUsername)
+                                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup : username ["+s+"]"))
                 ))
                 .filter(s -> !s.isEmpty())
                 .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup username [" + s + "]"))
