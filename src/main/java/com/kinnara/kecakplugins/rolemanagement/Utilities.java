@@ -12,7 +12,6 @@ import org.joget.apps.datalist.model.DataList;
 import org.joget.apps.datalist.service.DataListService;
 import org.joget.apps.form.dao.FormDataDao;
 import org.joget.apps.form.model.Form;
-import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.model.FormRow;
 import org.joget.apps.form.model.FormRowSet;
 import org.joget.apps.form.service.FormService;
@@ -137,43 +136,44 @@ public class Utilities {
             }
 
             final DirectoryManager directoryManager = (DirectoryManager) appContext.getBean("directoryManager");
+
             final StringBuilder conditionMasterRoleGroup = new StringBuilder();
             final List<String> argumentsMasterRoleGroup = new ArrayList<>();
 
             conditionMasterRoleGroup.append(" AND e.customProperties.users LIKE '%'||?||'%'");
             argumentsMasterRoleGroup.add(currentUser);
 
-            final boolean isCurrentUserAnonymous = WorkflowUtil.isCurrentUserAnonymous();
-            final Collection<Group> groups = directoryManager.getGroupByUsername(currentUser);
-            if (groups != null) {
-                // filter by group
-                groups.stream()
-                        .map(Group::getName)
-                        .peek(g -> {
-                            if (debugMode)
-                                LogUtil.info(Utilities.class.getName(), "User [" + currentUser + "] is found in Directory Group [" + g + "]");
-                        })
-                        .forEach(name -> {
-                            conditionMasterRoleGroup.append(" OR e.customProperties.groups LIKE '%'||?||'%'");
-                            argumentsMasterRoleGroup.add(name);
-                        });
-            }
+            final Set<String> dirUserGroups = Optional.of(currentUser)
+                    .map(directoryManager::getGroupByUsername)
+                    .map(Collection::stream)
+                    .orElseGet(Stream::empty)
+                    .map(Group::getId)
+                    .collect(Collectors.toSet());
+
+            dirUserGroups.forEach(s -> {
+                conditionMasterRoleGroup.append(" OR e.customProperties.groups LIKE '%'||?||'%'");
+                argumentsMasterRoleGroup.add(s);
+            });
+
             conditionMasterRoleGroup.append(" OR e.customProperties.everyone in ('true', 'loggedIn')");
 
-            // get Master Role Group
-            final Pattern roleGroupPattern = Pattern.compile(argumentsMasterRoleGroup.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
+            final Pattern roleGroupPattern = Pattern.compile(Stream.of(currentUser).map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
+            final Pattern dirGroupPattern = Pattern.compile(dirUserGroups.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
+            final boolean isCurrentUserAnonymous = WorkflowUtil.isCurrentUserAnonymous();
+
             final FormRowSet rowSetMasterRoleGroup = Optional.ofNullable(formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup, argumentsMasterRoleGroup.toArray(), null, null, null, null))
                     .map(Collection::stream)
                     .orElseGet(Stream::empty)
                     .filter(row -> !row.getDeleted())
                     .filter(row -> {
-                        String everyOne = row.getProperty("everyone", "");
-                        String users = row.getProperty("users", "");
-                        String userGroups = row.getProperty("groups");
+                        final String everyOne = row.getProperty("everyone", "");
+                        final String users = row.getProperty("users", "");
+                        final String groups = row.getProperty("groups");
+
                         return "true".equals(everyOne)
                                 || ("loggedIn".equals(everyOne) && !isCurrentUserAnonymous)
                                 || roleGroupPattern.matcher(users).find()
-                                || Utilities.getUsersFromRoleGroup(userGroups).contains(users);
+                                || dirGroupPattern.matcher(groups).find();
                     })
                     .peek(row -> {
                         if (debugMode) {
@@ -208,17 +208,17 @@ public class Utilities {
                             LogUtil.info(Utilities.class.getName(), "Role [" + r.getId() + "] has [" + permission + "] permission in platform [" + platform + "]");
                         }
 
-                        if(isMobile != null && isMobile && !platform.contains("mobileapp")) {
+                        if (isMobile != null && isMobile && !platform.contains("mobileapp")) {
                             return Utilities.PERMISSION_NONE;
                         }
 
-                        if(isMobile != null && !isMobile && !platform.contains("web")) {
+                        if (isMobile != null && !isMobile && !platform.contains("web")) {
                             return Utilities.PERMISSION_NONE;
                         }
 
-                        if("read".equals(permission)) {
+                        if ("read".equals(permission)) {
                             return Utilities.PERMISSION_READ;
-                        } else if("write".equals(permission)) {
+                        } else if ("write".equals(permission)) {
                             return Utilities.PERMISSION_WRITE;
                         } else {
                             return Utilities.PERMISSION_NONE;
@@ -233,6 +233,8 @@ public class Utilities {
     }
 
     static public List<String> getUsersFromRoleGroup(String roleGroups) {
+        LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup : roleGroups [" + roleGroups + "]");
+
         final ApplicationContext appContext = AppUtil.getApplicationContext();
         final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
         final DirectoryManager directoryManager = (DirectoryManager) appContext.getBean("directoryManager");
@@ -245,7 +247,7 @@ public class Utilities {
                 .map(Arrays::stream)
                 .orElse(Stream.empty())
                 .filter(s -> !s.isEmpty())
-                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup groups [" + s + "]"))
+                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup : groups [" + s + "]"))
                 .map(s -> formDataDao.load(formMasterRoleGroup, s))
                 .filter(Objects::nonNull)
                 .filter(row -> !"true".equalsIgnoreCase(row.getProperty("everyone")))
@@ -260,7 +262,7 @@ public class Utilities {
                                 .map(directoryManager::getUserByGroupName)
                                 .flatMap(Collection::stream)
                                 .map(User::getUsername)
-                                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup : username ["+s+"]"))
+                                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup : username [" + s + "]"))
                 ))
                 .filter(s -> !s.isEmpty())
                 .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup username [" + s + "]"))
@@ -268,16 +270,19 @@ public class Utilities {
     }
 
     private static String getConfigurationString(String propertyName) {
-        ApplicationContext appContext = AppUtil.getApplicationContext();
-        AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
-        AppDefinition appDef = appDefinitionDao.loadById(APP_ID);
-        Collection<PluginDefaultProperties> pluginDefaultProperties = appDef.getPluginDefaultPropertiesList();
+        final ApplicationContext appContext = AppUtil.getApplicationContext();
+        final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
+        final AppDefinition roleManagementAppDef = appDefinitionDao.loadById(APP_ID);
+        final AppDefinition currentAppDef = AppUtil.getCurrentAppDefinition();
+
         // get Role Management Configuration
-        Map<String, Object> configurationProperties = pluginDefaultProperties.stream()
+        final Map<String, Object> configurationProperties = Stream.of(currentAppDef, roleManagementAppDef)
+                .map(AppDefinition::getPluginDefaultPropertiesList)
+                .flatMap(Collection::stream)
                 .filter(p -> p.getId().equals(RoleManagementConfiguration.class.getName()))
                 .findFirst()
                 .map(p -> PropertyUtil.getPropertiesValueFromJson(p.getPluginProperties()))
-                .orElse(new HashMap<>());
+                .orElseGet(HashMap::new);
 
         return String.valueOf(configurationProperties.get(propertyName));
     }
@@ -302,7 +307,7 @@ public class Utilities {
                 .filter(s -> !results.contains(s))
                 .collect(Collectors.toSet());
 
-        if(!includeRoleIds.isEmpty()) {
+        if (!includeRoleIds.isEmpty()) {
             results.addAll(getCompleteRoles(formMasterRole, includeRoleIds));
         }
 
