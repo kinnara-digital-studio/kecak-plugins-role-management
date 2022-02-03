@@ -233,8 +233,6 @@ public class Utilities {
     }
 
     static public List<String> getUsersFromRoleGroup(String roleGroups) {
-        LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup : roleGroups [" + roleGroups + "]");
-
         final ApplicationContext appContext = AppUtil.getApplicationContext();
         final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
         final DirectoryManager directoryManager = (DirectoryManager) appContext.getBean("directoryManager");
@@ -247,7 +245,6 @@ public class Utilities {
                 .map(Arrays::stream)
                 .orElse(Stream.empty())
                 .filter(s -> !s.isEmpty())
-                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup : groups [" + s + "]"))
                 .map(s -> formDataDao.load(formMasterRoleGroup, s))
                 .filter(Objects::nonNull)
                 .filter(row -> !"true".equalsIgnoreCase(row.getProperty("everyone")))
@@ -262,10 +259,8 @@ public class Utilities {
                                 .map(directoryManager::getUserByGroupName)
                                 .flatMap(Collection::stream)
                                 .map(User::getUsername)
-                                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup : username [" + s + "]"))
                 ))
                 .filter(s -> !s.isEmpty())
-                .peek(s -> LogUtil.info(Utilities.class.getName(), "getUsersFromRoleGroup username [" + s + "]"))
                 .collect(Collectors.toList());
     }
 
