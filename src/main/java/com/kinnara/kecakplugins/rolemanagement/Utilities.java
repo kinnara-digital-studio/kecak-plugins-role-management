@@ -276,7 +276,8 @@ public class Utilities {
                 .flatMap(Collection::stream)
                 .filter(p -> RoleManagementConfiguration.class.getName().equals(p.getId()))
                 .findFirst()
-                .map(p -> PropertyUtil.getPropertiesValueFromJson(p.getPluginProperties()))
+                .map(PluginDefaultProperties::getPluginProperties)
+                .map(PropertyUtil::getPropertiesValueFromJson)
                 .orElseGet(HashMap::new);
 
         return String.valueOf(configurationProperties.get(propertyName));
