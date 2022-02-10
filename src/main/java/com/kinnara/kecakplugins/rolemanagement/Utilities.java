@@ -274,7 +274,9 @@ public class Utilities {
         final Map<String, Object> configurationProperties = Stream.of(currentAppDef, roleManagementAppDef)
                 .map(AppDefinition::getPluginDefaultPropertiesList)
                 .flatMap(Collection::stream)
-                .filter(p -> RoleManagementConfiguration.class.getName().equals(p.getId()))
+                .filter(p -> p != null
+                        && p.getId() != null
+                        && RoleManagementConfiguration.class.getName().equals(p.getId()))
                 .findFirst()
                 .map(PluginDefaultProperties::getPluginProperties)
                 .map(PropertyUtil::getPropertiesValueFromJson)
