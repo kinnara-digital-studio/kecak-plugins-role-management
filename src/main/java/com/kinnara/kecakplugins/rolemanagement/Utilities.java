@@ -272,7 +272,9 @@ public class Utilities {
 
         // get Role Management Configuration
         final Map<String, Object> configurationProperties = Stream.of(currentAppDef, roleManagementAppDef)
+                .filter(Objects::nonNull)
                 .map(AppDefinition::getPluginDefaultPropertiesList)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(p -> p != null
                         && p.getId() != null
