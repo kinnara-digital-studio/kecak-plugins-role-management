@@ -294,8 +294,15 @@ public class Utilities {
     protected static Set<String> getCompleteRoles(final Form formMasterRole, final Set<String> roleIds) {
         final Set<String> results = new HashSet<>(roleIds);
         final FormDataDao formDataDao = (FormDataDao) AppUtil.getApplicationContext().getBean("formDataDao");
-        final String condition = results.stream().map(s -> "?").collect(Collectors.joining(",", "where id in (", ")"));
-        final String[] arguments = results.toArray(new String[0]);
+        final String condition;
+        final String[] arguments;
+        if (roleIds.isEmpty()) {
+            condition = "where 1 = 1";
+            arguments = null;
+        } else {
+            condition = results.stream().map(s -> "?").collect(Collectors.joining(",", "where id in (", ")"));
+            arguments = results.toArray(new String[0]);
+        }
 
         final Set<String> includeRoleIds = Optional.ofNullable(formDataDao.find(formMasterRole, condition, arguments, null, null, null, null))
                 .map(Collection::stream)
@@ -319,19 +326,20 @@ public class Utilities {
 
         final String conditionAuthObject = " AND e.customProperties.auth_object LIKE '%" + authObjectId + "%'";
 
-        final String conditionsRoleId = roleIds
-                .stream()
-                .collect(Collectors.joining("', '", " AND id IN ('", "')"));
+        final String conditionsRoleId;
+        if (roleIds.isEmpty()) {
+            conditionsRoleId = " and 1 <> 1";
+        } else {
+            conditionsRoleId = roleIds
+                    .stream()
+                    .collect(Collectors.joining("', '", " and id in ('", "')"));
+        }
 
-        return Optional.ofNullable(formDataDao.find(formMasterRole, "WHERE 1 = 1 " + conditionsRoleId + conditionAuthObject, null, null, null, null, null))
+        return Optional.ofNullable(formDataDao.find(formMasterRole, "where 1 = 1 " + conditionsRoleId + conditionAuthObject, null, null, null, null, null))
                 .map(Collection::stream)
                 .orElseGet(Stream::empty)
                 .filter(row -> isContainingAuthObject(authObjectId, row))
                 .collect(FormRowSet::new, FormRowSet::add, FormRowSet::addAll);
-    }
-
-    protected static void getParentsMasterRole(Form formMasterRole, Set<String> roleIds, String authObjectId, final Set<String> memo) {
-
     }
 
     protected static boolean isContainingAuthObject(String authObjectId, FormRow rowRole) {
