@@ -2,6 +2,7 @@ package com.kinnara.kecakplugins.rolemanagement;
 
 import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
+import org.joget.commons.util.LogUtil;
 import org.joget.workflow.model.DefaultParticipantPlugin;
 import org.joget.workflow.model.service.WorkflowManager;
 import org.joget.workflow.model.service.WorkflowUserManager;
@@ -38,8 +39,15 @@ public class RoleManagementWhitelistParticipant extends DefaultParticipantPlugin
         WorkflowUserManager wfUserManager = wfManager.getWorkflowUserManager();
         String currentUsername = wfUserManager.getCurrentUsername();
         List<String> assignments = new ArrayList<>();
-        if(Utilities.getPermission(currentUsername, getPropertyString("authObject"), "action") == Utilities.PERMISSION_WRITE)
+        String strDebugMode = getPropertyString("debugMode");
+        boolean debugMode = Boolean.getBoolean(strDebugMode);
+        if(debugMode)
+            LogUtil.info(getClassName(), String.valueOf(Utilities.getPermission(currentUsername, getPropertyString("authObject"), "action"))); 
+        
+        if(Utilities.getPermission(currentUsername, getPropertyString("authObject"), "action") == Utilities.PERMISSION_WRITE){
             assignments.add(currentUsername);
+        }   
+            
         return assignments;
     }
 
