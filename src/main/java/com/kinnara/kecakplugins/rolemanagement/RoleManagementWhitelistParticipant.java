@@ -40,9 +40,9 @@ public class RoleManagementWhitelistParticipant extends DefaultParticipantPlugin
         String currentUsername = wfUserManager.getCurrentUsername();
         List<String> assignments = new ArrayList<>();
         String strDebugMode = getPropertyString("debugMode");
-        boolean debugMode = Boolean.getBoolean(strDebugMode);
+        boolean debugMode = Boolean.valueOf(strDebugMode);
         if(debugMode)
-            LogUtil.info(getClassName(), String.valueOf(Utilities.getPermission(currentUsername, getPropertyString("authObject"), "action"))); 
+            LogUtil.info(getClassName(), "[AUTH OBJECT ACTION VALUE] "+String.valueOf(Utilities.getPermission(currentUsername, getPropertyString("authObject"), "action"))); 
         
         if(Utilities.getPermission(currentUsername, getPropertyString("authObject"), "action") == Utilities.PERMISSION_WRITE){
             assignments.add(currentUsername);
