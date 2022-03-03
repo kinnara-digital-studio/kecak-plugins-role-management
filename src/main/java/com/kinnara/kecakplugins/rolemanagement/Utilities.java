@@ -1,5 +1,6 @@
 package com.kinnara.kecakplugins.rolemanagement;
 
+import com.kinnarastudio.commons.Try;
 import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.dao.DatalistDefinitionDao;
 import org.joget.apps.app.dao.FormDefinitionDao;
@@ -200,7 +201,7 @@ public class Utilities {
 
             return rowSetMasterRole
                     .stream()
-                    .map(r -> {
+                    .map(Try.onFunction(r -> {
                         final String permission = r.getProperty("permission");
                         final String platform = r.getProperty("platform");
 
@@ -223,12 +224,15 @@ public class Utilities {
                         } else {
                             return Utilities.PERMISSION_NONE;
                         }
-                    })
+                    }, (FormRow row, RuntimeException e) -> {
+                        LogUtil.error(Utilities.class.getName(), e, "User [" + WorkflowUtil.getCurrentUsername() + "] Error while retrieving from MASTER ROLE id [" + row.getId() + "], grant NONE access");
+                        return WorkflowUtil.isCurrentUserInRole(WorkflowUtil.ROLE_ADMIN) ? Utilities.PERMISSION_WRITE : Utilities.PERMISSION_NONE;
+                    }))
                     .reduce((p1, p2) -> p1 | p2)
                     .orElse(Utilities.PERMISSION_NONE);
         } catch (Exception e) {
-            LogUtil.error(Utilities.class.getName(), e, "Error while retrieving permission, grant WRITE access");
-            return Utilities.PERMISSION_WRITE;
+            LogUtil.error(Utilities.class.getName(), e, "User [" + WorkflowUtil.getCurrentUsername() + "] Error while retrieving permission, grant NONE access");
+            return WorkflowUtil.isCurrentUserInRole(WorkflowUtil.ROLE_ADMIN) ? Utilities.PERMISSION_WRITE : Utilities.PERMISSION_NONE;
         }
     }
 
