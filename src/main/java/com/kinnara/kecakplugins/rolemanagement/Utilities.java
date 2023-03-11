@@ -22,9 +22,13 @@ import org.joget.directory.model.User;
 import org.joget.directory.model.service.DirectoryManager;
 import org.joget.plugin.property.service.PropertyUtil;
 import org.joget.workflow.util.WorkflowUtil;
+import org.kecak.apps.exception.ApiException;
 import org.springframework.context.ApplicationContext;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -58,17 +62,12 @@ public class Utilities {
         return generateForm(appDefinitionDao.loadVersion(appId, Long.valueOf(appVersion)), formDefId);
     }
 
-    public static Form generateForm(AppDefinition appDef, String formDefId) {
-        // check in cache
-//        if(formCache.containsKey(formDefId))
-//            return formCache.get(formDefId);
-
-        // proceed without cache
+    public static Form generateForm(AppDefinition appDef, @Nonnull String formDefId) {
         ApplicationContext appContext = AppUtil.getApplicationContext();
         FormService formService = (FormService) appContext.getBean("formService");
 
 
-        if (appDef != null && formDefId != null && !formDefId.isEmpty()) {
+        if (appDef != null && !formDefId.isEmpty()) {
             FormDefinitionDao formDefinitionDao =
                     (FormDefinitionDao) AppUtil.getApplicationContext().getBean("formDefinitionDao");
 
@@ -76,13 +75,11 @@ public class Utilities {
             if (formDef != null) {
                 String json = formDef.getJson();
                 Form form = (Form) formService.createElementFromJson(json);
-
-                // put in cache if possible
-//                formCache.put(formDefId, form);
-
                 return form;
             }
         }
+
+        LogUtil.warn(Utilities.class.getName(), "Error generating form [" + formDefId + "] in application [" + appDef.getAppId() + "][" + appDef.getVersion() + "]");
         return null;
     }
 
@@ -349,5 +346,14 @@ public class Utilities {
     protected static boolean isContainingAuthObject(String authObjectId, FormRow rowRole) {
         final Pattern patternAuthObject = Pattern.compile("\\b" + authObjectId + "\\b");
         return patternAuthObject.matcher(rowRole.getProperty("auth_object")).find();
+    }
+
+    public static String getParameter(HttpServletRequest request, String parameterName) throws ApiException {
+        return optParameter(request, parameterName)
+                .orElseThrow(() -> new ApiException(HttpServletResponse.SC_BAD_REQUEST, "Parameter [" + parameterName + "] is not supplied"));
+    }
+
+    public static Optional<String> optParameter(HttpServletRequest request, String parameterName) {
+        return Optional.of(parameterName).map(request::getParameter);
     }
 }

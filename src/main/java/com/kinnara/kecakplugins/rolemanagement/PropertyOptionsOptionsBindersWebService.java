@@ -12,6 +12,7 @@ import org.joget.apps.form.model.FormRowSet;
 import org.joget.commons.util.LogUtil;
 import org.joget.plugin.base.DefaultApplicationPlugin;
 import org.joget.plugin.base.PluginWebSupport;
+import org.joget.workflow.util.WorkflowUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.kecak.apps.exception.ApiException;
@@ -54,24 +55,25 @@ public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationP
 
     @Override
     public void webService(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        LogUtil.info(getClass().getName(), "Executing Rest API [" + request.getRequestURI() + "] in method [" + request.getMethod() + "] contentType [" + request.getContentType() + "] as [" + WorkflowUtil.getCurrentUsername() + "]");
+
         try {
             final String method = request.getMethod();
-            final String formDefId = request.getParameter("formDefId");
+            final String formDefId = Utilities.getParameter(request, "formDefId");
             if (!"GET".equals(method)) {
-                String message = "Only accept GET method";
-                throw new ApiException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, message);
+                throw new ApiException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Only accept GET method");
             }
 
+            final AppDefinition currentAppDefinition = AppUtil.getCurrentAppDefinition();
             final ApplicationContext appContext = AppUtil.getApplicationContext();
             final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
             final AppDefinition appDefRoleManagement = appDefinitionDao.loadById("roleMgmt");
-            final AppDefinition currentAppDefinition = AppUtil.getCurrentAppDefinition();
             final FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
 
+            LogUtil.info(getClassName(), "Application Definition ["+currentAppDefinition.getAppId()+"] ["+appDefRoleManagement.getAppId()+"]");
             final Form form = Utilities.generateForm(appDefRoleManagement, formDefId);
             if (form == null) {
-                String message = "Form not found";
-                throw new ApiException(HttpServletResponse.SC_NOT_FOUND, message);
+                throw new ApiException(HttpServletResponse.SC_NOT_FOUND, "Form not found");
             }
 
             final Pattern ignoredParameters = Pattern.compile("appId|appVersion|formDefId|pluginName|_");

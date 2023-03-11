@@ -109,12 +109,8 @@ public class RoleManagementPermission extends UserviewPermission implements Form
 
     @Override
     public String getPropertyOptions() {
-        final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
-        final String appId = Optional.ofNullable(appDefinition).map(AppDefinition::getAppId).orElse("");
-        final Long appVersion = Optional.ofNullable(appDefinition).map(AppDefinition::getVersion).orElse(0L);
         final String[] args = new String[] {
-                appId,
-                appVersion.toString(),
+                AppUtil.getCurrentAppDefinition().getAppId(),
                 PropertyOptionsOptionsBindersWebService.class.getName()
         };
         return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementPermission.json", args,  false, "/messages/RoleManagement");
