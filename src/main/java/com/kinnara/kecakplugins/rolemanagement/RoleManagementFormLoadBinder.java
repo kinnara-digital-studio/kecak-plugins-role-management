@@ -8,12 +8,14 @@ import org.joget.apps.form.dao.FormDataDao;
 import org.joget.apps.form.lib.WorkflowFormBinder;
 import org.joget.apps.form.model.*;
 import org.joget.apps.form.service.FormUtil;
+import org.joget.plugin.base.PluginManager;
 import org.joget.workflow.model.service.WorkflowManager;
 import org.joget.workflow.model.service.WorkflowUserManager;
 import org.springframework.context.ApplicationContext;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
 /**
@@ -74,7 +76,10 @@ public class RoleManagementFormLoadBinder extends WorkflowFormBinder {
 
     @Override
     public String getVersion() {
-        return getClass().getPackage().getImplementationVersion();
+        PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
+        ResourceBundle resourceBundle = pluginManager.getPluginMessageBundle(getClassName(), "/messages/BuildNumber");
+        String buildNumber = resourceBundle.getString("buildNumber");
+        return buildNumber;
     }
 
     @Override

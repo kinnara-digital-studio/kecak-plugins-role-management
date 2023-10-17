@@ -4,9 +4,23 @@
     <groupId>com.kinnara.kecakplugins.rolemanagement</groupId>
     <artifactId>kecak-plugins-role-management</artifactId>
     <packaging>bundle</packaging>
-    <version>1.0.0</version>
-    <name>kecak-plugins-role-management</name>
-    <url>http://www.joget.org</url>
+    <version>3.0.0</version>
+    <name>${project.groupId}:${project.artifactId}</name>
+    <url>http://www.kecak.org</url>
+    <developers>
+        <developer>
+            <name>Aristo Hadisoeganda</name>
+            <email>aristo.hadisoeganda@kinnarastudio.com</email>
+            <organization>Kinnara Digital Studio</organization>
+            <organizationUrl>https://www.kinnarastudio.com</organizationUrl>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:ssh://git@gitlab.com:kinnarastudio/kecak-plugins-role-management.git</connection>
+        <developerConnection>scm:git:ssh://git@gitlab.com:kinnarastudio/kecak-plugins-role-management.git</developerConnection>
+        <url>ssh://git@gitlab.com:kinnarastudio/kecak-plugins-role-management.git</url>
+        <tag>HEAD</tag>
+    </scm>
     <build>
         <plugins>
             <plugin>
@@ -49,6 +63,26 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>1.4</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doCheck>false</doCheck>
+                    <doUpdate>false</doUpdate>
+                    <revisionOnScmFailure>0</revisionOnScmFailure>
+                    <shortRevisionLength>8</shortRevisionLength>
+                    <timestampFormat>{0,date,yyyy}</timestampFormat>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
@@ -94,7 +128,13 @@
         <dependency>
             <groupId>org.joget</groupId>
             <artifactId>wflow-core</artifactId>
-            <version>5.0-SNAPSHOT</version>
+            <version>[7.0-SNAPSHOT],[7.0,8.0)</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>javax.servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
             <scope>provided</scope>
         </dependency>
         <!-- Change plugin specific dependencies here -->
@@ -111,7 +151,7 @@
         <dependency>
             <groupId>com.kinnarastudio</groupId>
             <artifactId>kinnara-commons</artifactId>
-            <version>1.2.5</version>
+            <version>4.1.1</version>
         </dependency>
         <!-- End change plugin specific dependencies here -->
     </dependencies>
