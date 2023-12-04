@@ -166,7 +166,7 @@ public class Utilities {
                     .filter(row -> {
                         final String everyOne = row.getProperty("everyone", "");
                         final String users = row.getProperty("users", "");
-                        final String groups = row.getProperty("groups");
+                        final String groups = row.getProperty("groups", "");
 
                         return "true".equals(everyOne)
                                 || ("loggedIn".equals(everyOne) && !isCurrentUserAnonymous)
@@ -228,8 +228,9 @@ public class Utilities {
                     .reduce((p1, p2) -> p1 | p2)
                     .orElse(Utilities.PERMISSION_NONE);
         } catch (Exception e) {
-            LogUtil.error(Utilities.class.getName(), e, "User [" + WorkflowUtil.getCurrentUsername() + "] Error while retrieving permission, grant NONE access");
-            return WorkflowUtil.isCurrentUserInRole(WorkflowUtil.ROLE_ADMIN) ? Utilities.PERMISSION_WRITE : Utilities.PERMISSION_NONE;
+            final int granted = WorkflowUtil.isCurrentUserInRole(WorkflowUtil.ROLE_ADMIN) ? Utilities.PERMISSION_WRITE : Utilities.PERMISSION_NONE;
+            LogUtil.error(Utilities.class.getName(), e, "User [" + WorkflowUtil.getCurrentUsername() + "] Error while retrieving permission, grant [" + granted + "] permission access");
+            return granted;
         }
     }
 

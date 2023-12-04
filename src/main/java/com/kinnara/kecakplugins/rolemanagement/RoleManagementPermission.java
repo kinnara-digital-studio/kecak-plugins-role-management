@@ -4,12 +4,15 @@ import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
+import org.joget.apps.datalist.model.DatalistPermission;
 import org.joget.apps.form.dao.FormDataDao;
 import org.joget.apps.form.model.Element;
 import org.joget.apps.form.model.Form;
 import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.model.FormPermission;
 import org.joget.apps.form.service.FormUtil;
+import org.joget.apps.userview.model.Permission;
+import org.joget.apps.userview.model.UserviewAccessPermission;
 import org.joget.apps.userview.model.UserviewPermission;
 import org.joget.plugin.base.PluginManager;
 import org.joget.workflow.model.service.WorkflowManager;
@@ -27,7 +30,7 @@ import java.util.stream.Stream;
  *
  *
  */
-public class RoleManagementPermission extends UserviewPermission implements FormPermission {
+public class RoleManagementPermission extends Permission implements FormPermission, UserviewAccessPermission, DatalistPermission {
     @Override
     public boolean isAuthorize() {
         WorkflowManager wfManager = (WorkflowManager)AppUtil.getApplicationContext().getBean("workflowManager");

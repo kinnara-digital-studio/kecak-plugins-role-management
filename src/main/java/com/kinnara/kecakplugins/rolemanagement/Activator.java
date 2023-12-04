@@ -2,6 +2,8 @@ package com.kinnara.kecakplugins.rolemanagement;
 
 import java.util.ArrayList;
 import java.util.Collection;
+
+import com.kinnara.kecakplugins.rolemanagement.optionsbinder.AppOptionsBinder;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -20,6 +22,7 @@ public class Activator implements BundleActivator {
         registrationList.add(context.registerService(RoleManagementRoleGroupParticipant.class.getName(), new RoleManagementRoleGroupParticipant(), null));
         registrationList.add(context.registerService(RoleManagementWhitelistParticipant.class.getName(), new RoleManagementWhitelistParticipant(), null));
         registrationList.add(context.registerService(RoleManagementConfiguration.class.getName(), new RoleManagementConfiguration(), null));
+        registrationList.add(context.registerService(AppOptionsBinder.class.getName(), new AppOptionsBinder(), null));
     }
 
     public void stop(BundleContext context) {
