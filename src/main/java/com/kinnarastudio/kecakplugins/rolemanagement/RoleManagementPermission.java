@@ -113,7 +113,6 @@ public class RoleManagementPermission extends Permission implements FormPermissi
     @Override
     public String getPropertyOptions() {
         final String[] args = new String[] {
-                AppUtil.getCurrentAppDefinition().getAppId(),
                 PropertyOptionsOptionsBindersWebService.class.getName()
         };
         return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementPermission.json", args,  false, "/messages/RoleManagement");
