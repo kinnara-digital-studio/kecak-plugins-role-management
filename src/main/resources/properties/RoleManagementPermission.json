@@ -1,13 +1,13 @@
 [
   {
-    title : '@@roleManagement.permission@@',
-    properties : [
+    "title": "@@roleManagement.permission@@",
+    "properties": [
       {
-        name : 'authObject',
-        label : '@@roleManagement.authObject@@',
-        type : 'selectbox',
-        required : 'true',
-        options_ajax : '[CONTEXT_PATH]/web/json/app/%s/plugin/%s/service?formDefId=master_auth_obj&type=menu'
+        "name": "authObject",
+        "label": "@@roleManagement.authObject@@",
+        "type": "selectbox",
+        "required": "true",
+        "options_ajax": "[CONTEXT_PATH]/web/json/app[APP_PATH]/plugin/%s/service?formDefId=master_auth_obj&type=menu"
       }
     ]
   }

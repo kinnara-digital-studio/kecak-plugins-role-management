@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.rolemanagement;
+package com.kinnarastudio.kecakplugins.rolemanagement;
 
 import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
@@ -57,6 +57,6 @@ public class RoleManagementConfiguration extends DefaultApplicationPlugin implem
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementConfiguration.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagement");
+        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementConfiguration.json", null,  false, "/messages/RoleManagement");
     }
 }

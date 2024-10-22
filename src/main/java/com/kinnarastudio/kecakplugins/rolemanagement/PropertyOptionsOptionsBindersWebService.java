@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.rolemanagement;
+package com.kinnarastudio.kecakplugins.rolemanagement;
 
 import com.kinnarastudio.commons.Try;
 import com.kinnarastudio.commons.jsonstream.JSONCollectors;
@@ -11,6 +11,7 @@ import org.joget.apps.form.model.FormRow;
 import org.joget.apps.form.model.FormRowSet;
 import org.joget.commons.util.LogUtil;
 import org.joget.plugin.base.DefaultApplicationPlugin;
+import org.joget.plugin.base.PluginManager;
 import org.joget.plugin.base.PluginWebSupport;
 import org.joget.workflow.util.WorkflowUtil;
 import org.json.JSONArray;
@@ -33,14 +34,19 @@ import java.util.stream.Stream;
  * Options binder for Role Management data
  */
 public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationPlugin implements PluginWebSupport {
+    public final static String LABEL = "Options Binders Web Service";
+
     @Override
     public String getName() {
-        return "Options Binders Web Service";
+        return LABEL;
     }
 
     @Override
     public String getVersion() {
-        return getClass().getPackage().getImplementationVersion();
+        PluginManager pluginManager = (PluginManager) AppUtil.getApplicationContext().getBean("pluginManager");
+        ResourceBundle resourceBundle = pluginManager.getPluginMessageBundle(getClassName(), "/messages/BuildNumber");
+        String buildNumber = resourceBundle.getString("buildNumber");
+        return buildNumber;
     }
 
     @Override
@@ -95,8 +101,8 @@ public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationP
 
             final FormRowSet rowSetAuthObject = formDataDao.find(form, query.toString(), arguments.toArray(new String[0]), null, null, null, null);
             final JSONArray jsonResult = Optional.ofNullable(rowSetAuthObject)
-                    .map(Collection::stream)
-                    .orElseGet(Stream::empty)
+                    .stream()
+                    .flatMap(Collection::stream)
                     .map(FormRow::getId)
                     .map(Try.onFunction(s -> {
                         JSONObject jsonObject = new JSONObject();
@@ -117,7 +123,7 @@ public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationP
 
     @Override
     public String getLabel() {
-        return getName();
+        return LABEL;
     }
 
     @Override

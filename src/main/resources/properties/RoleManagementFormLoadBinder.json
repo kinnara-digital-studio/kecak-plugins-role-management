@@ -1,13 +1,13 @@
 [
   {
-    title : '@@roleManagement.loadBinder@@',
-    properties : [
+    "title": "@@roleManagement.loadBinder@@",
+    "properties": [
       {
-        name : 'authObject',
-        label : '@@roleManagement.authObject@@',
-        type : 'selectbox',
-        required : 'true',
-        options_ajax : '[CONTEXT_PATH]/web/json/plugin/%s/service?formDefId=master_auth_obj&type=field'
+        "name": "authObject",
+        "label": "@@roleManagement.authObject@@",
+        "type": "selectbox",
+        "required": "true",
+        "options_ajax": "[CONTEXT_PATH]/web/json/app[APP_PATH]/plugin/%s/service?formDefId=master_auth_obj&type=field"
       }
     ]
   }

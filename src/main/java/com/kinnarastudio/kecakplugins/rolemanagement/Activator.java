@@ -1,9 +1,9 @@
-package com.kinnara.kecakplugins.rolemanagement;
+package com.kinnarastudio.kecakplugins.rolemanagement;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
-import com.kinnara.kecakplugins.rolemanagement.optionsbinder.AppOptionsBinder;
+import com.kinnarastudio.kecakplugins.rolemanagement.optionsbinder.AppOptionsBinder;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;

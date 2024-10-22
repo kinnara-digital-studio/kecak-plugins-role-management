@@ -1,5 +1,6 @@
-package com.kinnara.kecakplugins.rolemanagement;
+package com.kinnarastudio.kecakplugins.rolemanagement;
 
+import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.plugin.base.PluginManager;
@@ -56,6 +57,10 @@ public class RoleManagementWhitelistParticipant extends DefaultParticipantPlugin
 
     @Override
     public String getPropertyOptions() {
-        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementWhitelistParticipant.json", new String[] {PropertyOptionsOptionsBindersWebService.class.getName()},  false, "/messages/RoleManagement");
+        final AppDefinition appDefinition = AppUtil.getCurrentAppDefinition();
+        final Object[] args = {
+                PropertyOptionsOptionsBindersWebService.class.getName()
+        };
+        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementWhitelistParticipant.json", args,  false, "/messages/RoleManagement");
     }
 }

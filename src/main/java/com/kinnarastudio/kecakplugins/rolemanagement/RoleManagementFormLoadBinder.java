@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.rolemanagement;
+package com.kinnarastudio.kecakplugins.rolemanagement;
 
 import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;

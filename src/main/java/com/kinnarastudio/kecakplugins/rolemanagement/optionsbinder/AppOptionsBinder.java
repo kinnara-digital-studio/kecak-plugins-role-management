@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.rolemanagement.optionsbinder;
+package com.kinnarastudio.kecakplugins.rolemanagement.optionsbinder;
 
 import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.service.AppUtil;

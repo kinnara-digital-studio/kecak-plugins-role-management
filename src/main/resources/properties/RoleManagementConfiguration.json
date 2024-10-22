@@ -1,15 +1,17 @@
 [
   {
-    title : '@@roleManagement.configuration@@',
-    properties : [
+    "title": "@@roleManagement.configuration@@",
+    "properties": [
       {
-        name : 'debugMode',
-        label : '@@roleManagement.debugMode@@',
-        type : 'checkbox',
-        options : [{
-          value : 'true',
-          label : ''
-        }]
+        "name": "debugMode",
+        "label": "@@roleManagement.debugMode@@",
+        "type": "checkbox",
+        "options": [
+          {
+            "value": "true",
+            "label": ""
+          }
+        ]
       }
     ]
   }

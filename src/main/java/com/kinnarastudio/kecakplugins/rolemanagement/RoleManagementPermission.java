@@ -1,4 +1,4 @@
-package com.kinnara.kecakplugins.rolemanagement;
+package com.kinnarastudio.kecakplugins.rolemanagement;
 
 import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.model.AppDefinition;
@@ -13,7 +13,6 @@ import org.joget.apps.form.model.FormPermission;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.apps.userview.model.Permission;
 import org.joget.apps.userview.model.UserviewAccessPermission;
-import org.joget.apps.userview.model.UserviewPermission;
 import org.joget.plugin.base.PluginManager;
 import org.joget.workflow.model.service.WorkflowManager;
 import org.joget.workflow.model.service.WorkflowUserManager;
