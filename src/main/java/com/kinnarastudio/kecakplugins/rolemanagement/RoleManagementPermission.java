@@ -30,6 +30,8 @@ import java.util.stream.Stream;
  *
  */
 public class RoleManagementPermission extends Permission implements FormPermission, UserviewAccessPermission, DatalistPermission {
+    public final static String LABEL = "Role Management Permission";
+
     @Override
     public boolean isAuthorize() {
         WorkflowManager wfManager = (WorkflowManager)AppUtil.getApplicationContext().getBean("workflowManager");
@@ -64,16 +66,16 @@ public class RoleManagementPermission extends Permission implements FormPermissi
                 .map(f -> formDataDao.load(f, authObject))
                 .map(r -> r.getProperty("object_name"))
                 .map(s -> s.split(";"))
-                .map(Arrays::stream)
-                .orElse(Stream.empty())
+                .stream()
+                .flatMap(Arrays::stream)
                 .map(id -> FormUtil.findElement(id, currentForm, formData, true))
                 .collect(Collectors.toList());
 
         if(fields.isEmpty()) {
             Optional.ofNullable(element)
                     .map(Element::getChildren)
-                    .map(Collection::stream)
-                    .orElseGet(Stream::empty)
+                    .stream()
+                    .flatMap(Collection::stream)
                     .forEach(elementConsumer);
         } else {
             fields.forEach(elementConsumer);
@@ -102,7 +104,7 @@ public class RoleManagementPermission extends Permission implements FormPermissi
 
     @Override
     public String getLabel() {
-        return getName();
+        return LABEL;
     }
 
     @Override

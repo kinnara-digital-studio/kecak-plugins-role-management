@@ -16,9 +16,9 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:ssh://git@gitlab.com:kinnarastudio/kecak-plugins-role-management.git</connection>
-        <developerConnection>scm:git:ssh://git@gitlab.com:kinnarastudio/kecak-plugins-role-management.git</developerConnection>
-        <url>ssh://git@gitlab.com:kinnarastudio/kecak-plugins-role-management.git</url>
+        <connection>scm:git:ssh://git@github.com:kinnara-digital-studio/kecak-plugins-role-management.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:kinnara-digital-studio/kecak-plugins-role-management.git</developerConnection>
+        <url>ssh://git@github.com:kinnara-digital-studio/kecak-plugins-role-management.git</url>
         <tag>HEAD</tag>
     </scm>
     <build>

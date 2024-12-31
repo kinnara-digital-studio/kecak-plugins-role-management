@@ -159,9 +159,7 @@ public class Utilities {
             final Pattern dirGroupPattern = Pattern.compile(dirUserGroups.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
             final boolean isCurrentUserAnonymous = WorkflowUtil.isCurrentUserAnonymous();
 
-            final FormRowSet rowSetMasterRoleGroup = Optional.ofNullable(formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup, argumentsMasterRoleGroup.toArray(), null, null, null, null))
-                    .map(Collection::stream)
-                    .orElseGet(Stream::empty)
+            final FormRowSet rowSetMasterRoleGroup = Optional.ofNullable(formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup, argumentsMasterRoleGroup.toArray(), null, null, null, null)).stream().flatMap(Collection::stream)
                     .filter(row -> !row.getDeleted())
                     .filter(row -> {
                         final String everyOne = row.getProperty("everyone", "");
