@@ -22,24 +22,21 @@ import org.springframework.context.ApplicationContext;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author aristo
- *
- *
  */
 public class RoleManagementPermission extends Permission implements FormPermission, UserviewAccessPermission, DatalistPermission {
     public final static String LABEL = "Role Management Permission";
 
     @Override
     public boolean isAuthorize() {
-        WorkflowManager wfManager = (WorkflowManager)AppUtil.getApplicationContext().getBean("workflowManager");
+        WorkflowManager wfManager = (WorkflowManager) AppUtil.getApplicationContext().getBean("workflowManager");
         WorkflowUserManager wfUserManager = wfManager.getWorkflowUserManager();
         ApplicationContext appContext = AppUtil.getApplicationContext();
         AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
         AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
-        FormDataDao formDataDao = (FormDataDao)appContext.getBean("formDataDao");
+        FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
 
         String authObject = getPropertyString("authObject");
 
@@ -71,7 +68,7 @@ public class RoleManagementPermission extends Permission implements FormPermissi
                 .map(id -> FormUtil.findElement(id, currentForm, formData, true))
                 .collect(Collectors.toList());
 
-        if(fields.isEmpty()) {
+        if (fields.isEmpty()) {
             Optional.ofNullable(element)
                     .map(Element::getChildren)
                     .stream()
@@ -114,9 +111,9 @@ public class RoleManagementPermission extends Permission implements FormPermissi
 
     @Override
     public String getPropertyOptions() {
-        final String[] args = new String[] {
+        final String[] args = new String[]{
                 PropertyOptionsOptionsBindersWebService.class.getName()
         };
-        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementPermission.json", args,  false, "/messages/RoleManagement");
+        return AppUtil.readPluginResource(getClassName(), "/properties/RoleManagementPermission.json", args, false, "/messages/RoleManagement");
     }
 }

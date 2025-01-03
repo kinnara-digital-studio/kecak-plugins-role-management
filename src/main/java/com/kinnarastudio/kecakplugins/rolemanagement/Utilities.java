@@ -122,11 +122,13 @@ public class Utilities {
 
             boolean debugMode = debugMode();
 
-            if (debugMode)
+            if (debugMode) {
                 LogUtil.info(Utilities.class.getName(), "============= Eximining auth. object [" + authObject + "] for user [" + currentUser + "] platform mobile [" + isMobile + "]=============");
+            }
 
             // get Master Auth Object
             final FormRow rowMasterAuthObject = formDataDao.load(formMasterAuthObject, authObject);
+
             if (rowMasterAuthObject == null || !objectType.equals(rowMasterAuthObject.getProperty("type"))) {
                 if (debugMode)
                     LogUtil.warn(Utilities.class.getName(), "Field Authorization Object [" + authObject + "] not defined, grant WRITE access");
@@ -143,8 +145,8 @@ public class Utilities {
 
             final Set<String> dirUserGroups = Optional.of(currentUser)
                     .map(directoryManager::getGroupByUsername)
-                    .map(Collection::stream)
-                    .orElseGet(Stream::empty)
+                    .stream()
+                    .flatMap(Collection::stream)
                     .map(Group::getId)
                     .collect(Collectors.toSet());
 
@@ -191,10 +193,10 @@ public class Utilities {
                     .flatMap(Arrays::stream)
                     .collect(Collectors.toSet());
 
-            // get Master Role
+            // get Master Role+
             final FormRowSet rowSetMasterRole = getMasterRole(formMasterRole, getCompleteRoles(formMasterRole, roles), rowMasterAuthObject.getId());
 
-            return rowSetMasterRole
+            int ret = rowSetMasterRole
                     .stream()
                     .map(Try.onFunction(r -> {
                         final String permission = r.getProperty("permission");
@@ -225,6 +227,7 @@ public class Utilities {
                     }))
                     .reduce((p1, p2) -> p1 | p2)
                     .orElse(Utilities.PERMISSION_NONE);
+            return ret;
         } catch (Exception e) {
             final int granted = WorkflowUtil.isCurrentUserInRole(WorkflowUtil.ROLE_ADMIN) ? Utilities.PERMISSION_WRITE : Utilities.PERMISSION_NONE;
             LogUtil.error(Utilities.class.getName(), e, "User [" + WorkflowUtil.getCurrentUsername() + "] Error while retrieving permission, grant [" + granted + "] permission access");
@@ -297,7 +300,7 @@ public class Utilities {
         final String condition;
         final String[] arguments;
         if (roleIds.isEmpty()) {
-            condition = "where 1 = 1";
+            condition = "where 1 <> 1";
             arguments = null;
         } else {
             condition = results.stream().map(s -> "?").collect(Collectors.joining(",", "where id in (", ")"));

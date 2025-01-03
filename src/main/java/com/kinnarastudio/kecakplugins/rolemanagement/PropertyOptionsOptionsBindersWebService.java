@@ -76,7 +76,6 @@ public class PropertyOptionsOptionsBindersWebService extends DefaultApplicationP
             final AppDefinition appDefRoleManagement = appDefinitionDao.loadById("roleMgmt");
             final FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
 
-            LogUtil.info(getClassName(), "Application Definition ["+currentAppDefinition.getAppId()+"] ["+appDefRoleManagement.getAppId()+"]");
             final Form form = Utilities.generateForm(appDefRoleManagement, formDefId);
             if (form == null) {
                 throw new ApiException(HttpServletResponse.SC_NOT_FOUND, "Form not found");
