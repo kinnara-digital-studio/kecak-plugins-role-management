@@ -17,6 +17,7 @@ import org.joget.apps.form.model.FormRow;
 import org.joget.apps.form.model.FormRowSet;
 import org.joget.apps.form.service.FormService;
 import org.joget.commons.util.LogUtil;
+import org.joget.directory.model.Employment;
 import org.joget.directory.model.Group;
 import org.joget.directory.model.User;
 import org.joget.directory.model.service.DirectoryManager;
@@ -143,35 +144,70 @@ public class Utilities {
             conditionMasterRoleGroup.append(" AND e.customProperties.users LIKE '%'||?||'%'");
             argumentsMasterRoleGroup.add(currentUser);
 
-            final Set<String> dirUserGroups = Optional.of(currentUser)
+            final Set<String> dirGroups = Optional.of(currentUser)
                     .map(directoryManager::getGroupByUsername)
                     .stream()
                     .flatMap(Collection::stream)
                     .map(Group::getId)
                     .collect(Collectors.toSet());
 
-            dirUserGroups.forEach(s -> {
+            dirGroups.forEach(s -> {
                 conditionMasterRoleGroup.append(" OR e.customProperties.groups LIKE '%'||?||'%'");
+                argumentsMasterRoleGroup.add(s);
+            });
+
+            final Collection<Employment> employments = Optional.of(currentUser)
+                    .map(directoryManager::getUserByUsername)
+                    .map(User::getEmployments)
+                    .map(o -> (Set<Employment>)o)
+                    .stream()
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toSet());
+
+            final Set<String> dirDepartments = employments
+                    .stream()
+                    .map(Employment::getDepartmentId)
+                    .collect(Collectors.toSet());
+
+            dirDepartments.forEach(s -> {
+                conditionMasterRoleGroup.append(" OR e.customProperties.departments LIKE '%'||?||'%'");
+                argumentsMasterRoleGroup.add(s);
+            });
+
+            final Set<String> dirOrganizations = employments
+                    .stream()
+                    .map(Employment::getOrganizationId)
+                    .collect(Collectors.toSet());
+
+            dirOrganizations.forEach(s -> {
+                conditionMasterRoleGroup.append(" OR e.customProperties.organizations LIKE '%'||?||'%'");
                 argumentsMasterRoleGroup.add(s);
             });
 
             conditionMasterRoleGroup.append(" OR e.customProperties.everyone in ('true', 'loggedIn')");
 
-            final Pattern roleGroupPattern = Pattern.compile(Stream.of(currentUser).map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
-            final Pattern dirGroupPattern = Pattern.compile(dirUserGroups.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
+            final Pattern dirUserPattern = Pattern.compile(Stream.of(currentUser).map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
+            final Pattern dirGroupPattern = Pattern.compile(dirGroups.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
+            final Pattern dirDepartmentPattern = Pattern.compile(dirDepartments.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
+            final Pattern dirOrganizationPattern = Pattern.compile(dirOrganizations.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
+
             final boolean isCurrentUserAnonymous = WorkflowUtil.isCurrentUserAnonymous();
 
             final FormRowSet rowSetMasterRoleGroup = Optional.ofNullable(formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup, argumentsMasterRoleGroup.toArray(), null, null, null, null)).stream().flatMap(Collection::stream)
                     .filter(row -> !row.getDeleted())
                     .filter(row -> {
-                        final String everyOne = row.getProperty("everyone", "");
+                        final String accessType = row.getProperty("everyone", "");
                         final String users = row.getProperty("users", "");
                         final String groups = row.getProperty("groups", "");
+                        final String departments = row.getProperty("departments", "");
+                        final String organizations = row.getProperty("organizations", "");
 
-                        return "true".equals(everyOne)
-                                || ("loggedIn".equals(everyOne) && !isCurrentUserAnonymous)
-                                || roleGroupPattern.matcher(users).find()
-                                || dirGroupPattern.matcher(groups).find();
+                        return isEveryOneIncludingAnonymous(accessType)
+                                || (isLoggedIn(accessType) && !isCurrentUserAnonymous)
+                                || (isByUser(accessType) && dirUserPattern.matcher(users).find())
+                                || (isByGroups(accessType) && dirGroupPattern.matcher(groups).find())
+                                || (isByDepartments(accessType) && dirDepartmentPattern.matcher(departments).find())
+                                || (isByOrganizations(accessType) && dirOrganizationPattern.matcher(organizations).find());
                     })
                     .peek(row -> {
                         if (debugMode) {
@@ -233,6 +269,30 @@ public class Utilities {
             LogUtil.error(Utilities.class.getName(), e, "User [" + WorkflowUtil.getCurrentUsername() + "] Error while retrieving permission, grant [" + granted + "] permission access");
             return granted;
         }
+    }
+
+    private static boolean isEveryOneIncludingAnonymous(String accessType) {
+        return "true".equals(accessType);
+    }
+
+    private static boolean isByUser(String accessType) {
+        return accessType.isEmpty();
+    }
+
+    private static boolean isByGroups(String accessType) {
+        return "groups".equals(accessType);
+    }
+
+    private static boolean isByDepartments(String accessType) {
+        return "departments".equals(accessType);
+    }
+
+    private static boolean isByOrganizations(String accessType) {
+        return "organizations".equals(accessType);
+    }
+
+    private static boolean isLoggedIn(String accessType) {
+        return "loggedIn".equals(accessType);
     }
 
     static public List<String> getUsersFromRoleGroup(String roleGroups) {
