@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -149,6 +150,8 @@ public class Utilities {
                     .stream()
                     .flatMap(Collection::stream)
                     .map(Group::getId)
+                    .filter(Objects::nonNull)
+                    .filter(Predicate.not(String::isEmpty))
                     .collect(Collectors.toSet());
 
             dirGroups.forEach(s -> {
@@ -162,11 +165,14 @@ public class Utilities {
                     .map(o -> (Set<Employment>)o)
                     .stream()
                     .flatMap(Collection::stream)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
 
             final Set<String> dirDepartments = employments
                     .stream()
                     .map(Employment::getDepartmentId)
+                    .filter(Objects::nonNull)
+                    .filter(Predicate.not(String::isEmpty))
                     .collect(Collectors.toSet());
 
             dirDepartments.forEach(s -> {
@@ -177,6 +183,8 @@ public class Utilities {
             final Set<String> dirOrganizations = employments
                     .stream()
                     .map(Employment::getOrganizationId)
+                    .filter(Objects::nonNull)
+                    .filter(Predicate.not(String::isEmpty))
                     .collect(Collectors.toSet());
 
             dirOrganizations.forEach(s -> {
