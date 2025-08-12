@@ -1,7 +1,5 @@
 package com.kinnarastudio.kecakplugins.rolemanagement;
 
-import org.joget.apps.app.dao.AppDefinitionDao;
-import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.datalist.model.DatalistPermission;
@@ -54,65 +52,53 @@ public class RoleManagementPermission extends Permission implements FormPermissi
 
         String cacheKey = username + "|" + authObject;
 
-        // if (permissionCache.containsKey(cacheKey)) {
-        //     LogUtil.info(getClassName(), "Cache: [" + cacheKey + "]");
-        //     return permissionCache.get(cacheKey);
-        // }
+        return Boolean.TRUE.equals(permissionCache.get(cacheKey, key -> {
+            ApplicationContext appContext = AppUtil.getApplicationContext();
+            FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
 
-        return permissionCache.get(cacheKey, key -> {
-        LogUtil.info(getClassName(), "Create Cache Key: [" + key + "]");
+            final int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "menu", getPlatform() == Platform.MOBILE);
+            final FormData formData = getFormData();
+            final Element element = getElement();
+            final Form currentForm = FormUtil.findRootForm(element) == null && element instanceof Form ? (Form) element : FormUtil.findRootForm(element);
 
-        ApplicationContext appContext = AppUtil.getApplicationContext();
-        // AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
-        // AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
-        FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
+            // process the element based on permission
+            final Consumer<Element> elementConsumer = e -> {
+                if (permission != Utilities.PERMISSION_WRITE) {
+                    // if don't have write access, set as readonly
+                    FormUtil.setReadOnlyProperty(e);
 
-        final int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "menu", getPlatform() == Platform.MOBILE);
-        final FormData formData = getFormData();
-        final Element element = getElement();
-        final Form currentForm = FormUtil.findRootForm(element) == null && element instanceof Form ? (Form) element : FormUtil.findRootForm(element);
-
-        // process the element based on permission
-        final Consumer<Element> elementConsumer = e -> {
-            if (permission != Utilities.PERMISSION_WRITE) {
-                // if don't have write access, set as readonly
-                FormUtil.setReadOnlyProperty(e);
-
-                if (permission == Utilities.PERMISSION_NONE) {
-                    // if don't have any access, remove value
-                    formData.getRequestParams().remove(FormUtil.getElementParameterName(e));
+                    if (permission == Utilities.PERMISSION_NONE) {
+                        // if don't have any access, remove value
+                        formData.getRequestParams().remove(FormUtil.getElementParameterName(e));
+                    }
                 }
-            }
-        };
+            };
 
-        // final Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
+            // final Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
 
-        FormRow formRow = formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, "master_role", authObject);
-        
-        final List<Element> fields = Optional.ofNullable(formRow)//Form, FormId -> FormId, Table ID, primaryKey
-                .map(r -> r.getProperty("object_name"))
-                .map(s -> s.split(";"))
-                .stream()
-                .flatMap(Arrays::stream)
-                .map(id -> FormUtil.findElement(id, currentForm, formData, true))
-                .collect(Collectors.toList());
+            FormRow formRow = formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, "master_role", authObject);
 
-        if (fields.isEmpty()) {
-            Optional.ofNullable(element)
-                    .map(Element::getChildren)
+            final List<Element> fields = Optional.ofNullable(formRow)//Form, FormId -> FormId, Table ID, primaryKey
+                    .map(r -> r.getProperty("object_name"))
+                    .map(s -> s.split(";"))
                     .stream()
-                    .flatMap(Collection::stream)
-                    .forEach(elementConsumer);
-        } else {
-            fields.forEach(elementConsumer);
-        }
+                    .flatMap(Arrays::stream)
+                    .map(id -> FormUtil.findElement(id, currentForm, formData, true))
+                    .collect(Collectors.toList());
 
-        boolean result = Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu", getPlatform() == Platform.MOBILE) != Utilities.PERMISSION_NONE;
+            if (fields.isEmpty()) {
+                Optional.ofNullable(element)
+                        .map(Element::getChildren)
+                        .stream()
+                        .flatMap(Collection::stream)
+                        .forEach(elementConsumer);
+            } else {
+                fields.forEach(elementConsumer);
+            }
 
-        // permissionCache.put(cacheKey, result);
-        
-        return result;
-        });
+            boolean result = Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu", getPlatform() == Platform.MOBILE) != Utilities.PERMISSION_NONE;
+            return result;
+        }));
     }
 
     @Override
