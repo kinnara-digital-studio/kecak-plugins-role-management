@@ -118,7 +118,7 @@ public class Utilities {
             FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
 
             AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
-            Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
+            // Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
             Form formMasterRole = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_FORM_DEF_ID);
             Form formMasterRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
 
@@ -129,7 +129,7 @@ public class Utilities {
             }
 
             // get Master Auth Object
-            final FormRow rowMasterAuthObject = formDataDao.load(formMasterAuthObject, authObject);
+            final FormRow rowMasterAuthObject = formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, Utilities.MASTER_ROLE_FORM_DEF_ID, authObject);
 
             if (rowMasterAuthObject == null || !objectType.equals(rowMasterAuthObject.getProperty("type"))) {
                 if (debugMode)
@@ -305,18 +305,18 @@ public class Utilities {
 
     static public List<String> getUsersFromRoleGroup(String roleGroups) {
         final ApplicationContext appContext = AppUtil.getApplicationContext();
-        final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
+        // final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
         final DirectoryManager directoryManager = (DirectoryManager) appContext.getBean("directoryManager");
         final FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
-        final AppDefinition appDef = appDefinitionDao.loadById(APP_ID);
-        final Form formMasterRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
+        // final AppDefinition appDef = appDefinitionDao.loadById(APP_ID);
+        // final Form formMasterRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
 
         return Optional.ofNullable(roleGroups)
                 .map(s -> s.split(";"))
                 .map(Arrays::stream)
                 .orElse(Stream.empty())
                 .filter(s -> !s.isEmpty())
-                .map(s -> formDataDao.load(formMasterRoleGroup, s))
+                .map(s -> formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, Utilities.MASTER_ROLE_FORM_DEF_ID, s))
                 .filter(Objects::nonNull)
                 .filter(row -> !"true".equalsIgnoreCase(row.getProperty("everyone")))
                 .flatMap(row -> Stream.concat(
