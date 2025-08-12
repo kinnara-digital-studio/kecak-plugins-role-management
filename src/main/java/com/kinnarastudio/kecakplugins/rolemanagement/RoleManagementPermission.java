@@ -10,16 +10,22 @@ import org.joget.apps.form.model.Element;
 import org.joget.apps.form.model.Form;
 import org.joget.apps.form.model.FormData;
 import org.joget.apps.form.model.FormPermission;
+import org.joget.apps.form.model.FormRow;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.apps.userview.model.Permission;
 import org.joget.apps.userview.model.UserviewAccessPermission;
+import org.joget.commons.util.LogUtil;
 import org.joget.plugin.base.PluginManager;
 import org.joget.workflow.model.service.WorkflowManager;
 import org.joget.workflow.model.service.WorkflowUserManager;
 import org.kecak.apps.userview.model.Platform;
 import org.springframework.context.ApplicationContext;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -29,16 +35,37 @@ import java.util.stream.Collectors;
 public class RoleManagementPermission extends Permission implements FormPermission, UserviewAccessPermission, DatalistPermission {
     public final static String LABEL = "Role Management Permission";
 
+    private static final Cache<String, Boolean> permissionCache = Caffeine.newBuilder()
+        .expireAfterWrite(1, TimeUnit.MINUTES)
+        .maximumSize(100)
+        .build();
+
+    // private final Map<String, Boolean> permissionCache = new HashMap<>();
+
     @Override
     public boolean isAuthorize() {
         WorkflowManager wfManager = (WorkflowManager) AppUtil.getApplicationContext().getBean("workflowManager");
         WorkflowUserManager wfUserManager = wfManager.getWorkflowUserManager();
-        ApplicationContext appContext = AppUtil.getApplicationContext();
-        AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
-        AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
-        FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
 
+        String username = wfUserManager.getCurrentUsername();
         String authObject = getPropertyString("authObject");
+
+        LogUtil.info(getClassName(), "Auth Object: [" + authObject + "]");
+
+        String cacheKey = username + "|" + authObject;
+
+        // if (permissionCache.containsKey(cacheKey)) {
+        //     LogUtil.info(getClassName(), "Cache: [" + cacheKey + "]");
+        //     return permissionCache.get(cacheKey);
+        // }
+
+        return permissionCache.get(cacheKey, key -> {
+        LogUtil.info(getClassName(), "Create Cache Key: [" + key + "]");
+
+        ApplicationContext appContext = AppUtil.getApplicationContext();
+        // AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
+        // AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
+        FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
 
         final int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "menu", getPlatform() == Platform.MOBILE);
         final FormData formData = getFormData();
@@ -58,9 +85,11 @@ public class RoleManagementPermission extends Permission implements FormPermissi
             }
         };
 
-        final Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
-        final List<Element> fields = Optional.ofNullable(formMasterAuthObject)
-                .map(f -> formDataDao.load(f, authObject))
+        // final Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
+
+        FormRow formRow = formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, "master_role", authObject);
+        
+        final List<Element> fields = Optional.ofNullable(formRow)//Form, FormId -> FormId, Table ID, primaryKey
                 .map(r -> r.getProperty("object_name"))
                 .map(s -> s.split(";"))
                 .stream()
@@ -78,7 +107,12 @@ public class RoleManagementPermission extends Permission implements FormPermissi
             fields.forEach(elementConsumer);
         }
 
-        return Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu", getPlatform() == Platform.MOBILE) != Utilities.PERMISSION_NONE;
+        boolean result = Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu", getPlatform() == Platform.MOBILE) != Utilities.PERMISSION_NONE;
+
+        // permissionCache.put(cacheKey, result);
+        
+        return result;
+        });
     }
 
     @Override
