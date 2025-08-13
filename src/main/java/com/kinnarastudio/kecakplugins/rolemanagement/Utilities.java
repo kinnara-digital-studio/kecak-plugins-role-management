@@ -41,6 +41,7 @@ public class Utilities {
     public final static String MASTER_ROLE_GROUP_FORM_DEF_ID = "master_role_group";
     public final static String MASTER_ROLE_FORM_DEF_ID = "master_role";
     public final static String MASTER_AUTH_OBJECT_FORM_DEF_ID = "master_auth_obj";
+    public final static String MASTER_AUTH_OBJECT_TABLE_NAME = "rolemgmt_auth_obj";
 
     public final static int PERMISSION_NONE = 0;
     public final static int PERMISSION_READ = 1;
@@ -129,7 +130,8 @@ public class Utilities {
             }
 
             // get Master Auth Object
-            final FormRow rowMasterAuthObject = formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, Utilities.MASTER_ROLE_FORM_DEF_ID, authObject);
+            // final FormRow rowMasterAuthObject = formDataDao.load(formMasterAuthObject, authObject);
+            final FormRow rowMasterAuthObject = formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, Utilities.MASTER_AUTH_OBJECT_TABLE_NAME, authObject);
 
             if (rowMasterAuthObject == null || !objectType.equals(rowMasterAuthObject.getProperty("type"))) {
                 if (debugMode)
@@ -316,7 +318,7 @@ public class Utilities {
                 .map(Arrays::stream)
                 .orElse(Stream.empty())
                 .filter(s -> !s.isEmpty())
-                .map(s -> formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, Utilities.MASTER_ROLE_FORM_DEF_ID, s))
+                .map(s -> formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, Utilities.MASTER_AUTH_OBJECT_TABLE_NAME, s))
                 .filter(Objects::nonNull)
                 .filter(row -> !"true".equalsIgnoreCase(row.getProperty("everyone")))
                 .flatMap(row -> Stream.concat(

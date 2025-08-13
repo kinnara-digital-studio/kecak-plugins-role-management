@@ -76,7 +76,7 @@ public class RoleManagementPermission extends Permission implements FormPermissi
 
             // final Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
 
-            FormRow formRow = formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, Utilities.MASTER_ROLE_FORM_DEF_ID, authObject);
+            FormRow formRow = formDataDao.load(Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID, Utilities.MASTER_AUTH_OBJECT_TABLE_NAME, authObject);
 
             final List<Element> fields = Optional.ofNullable(formRow)//Form, FormId -> FormId, Table ID, primaryKey
                     .map(r -> r.getProperty("object_name"))
