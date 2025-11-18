@@ -1,5 +1,6 @@
 package com.kinnarastudio.kecakplugins.rolemanagement;
 
+import com.kinnarastudio.kecakplugins.rolemanagement.commons.Utilities;
 import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.plugin.base.PluginManager;

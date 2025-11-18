@@ -1,5 +1,7 @@
 package com.kinnarastudio.kecakplugins.rolemanagement;
 
+import com.kinnarastudio.kecakplugins.rolemanagement.commons.CacheUtil;
+import com.kinnarastudio.kecakplugins.rolemanagement.commons.Utilities;
 import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.app.service.AppUtil;
 import org.joget.apps.datalist.model.DatalistPermission;
@@ -42,20 +44,19 @@ public class RoleManagementPermission extends Permission implements FormPermissi
 
     @Override
     public boolean isAuthorize() {
-        WorkflowManager wfManager = (WorkflowManager) AppUtil.getApplicationContext().getBean("workflowManager");
+        ApplicationContext appContext = AppUtil.getApplicationContext();
+        FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
+        WorkflowManager wfManager = (WorkflowManager) appContext.getBean("workflowManager");
         WorkflowUserManager wfUserManager = wfManager.getWorkflowUserManager();
 
         String username = wfUserManager.getCurrentUsername();
         String authObject = getPropertyString("authObject");
 
-        LogUtil.info(getClassName(), "Auth Object: [" + authObject + "]");
+        LogUtil.debug(getClassName(), "Auth Object: [" + authObject + "]");
 
-        String cacheKey = username + "|" + authObject;
+        String cacheKey = CacheUtil.getCacheKey(getClass(), username, authObject);
 
         return Boolean.TRUE.equals(permissionCache.get(cacheKey, key -> {
-            ApplicationContext appContext = AppUtil.getApplicationContext();
-            FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
-
             final int permission = Utilities.getPermission(wfUserManager.getCurrentUsername(), authObject, "menu", getPlatform() == Platform.MOBILE);
             final FormData formData = getFormData();
             final Element element = getElement();
@@ -96,7 +97,7 @@ public class RoleManagementPermission extends Permission implements FormPermissi
                 fields.forEach(elementConsumer);
             }
 
-            boolean result = Utilities.getPermission(wfUserManager.getCurrentUsername(), getPropertyString("authObject"), "menu", getPlatform() == Platform.MOBILE) != Utilities.PERMISSION_NONE;
+            boolean result = Utilities.getPermission(username, authObject, "menu", getPlatform() == Platform.MOBILE) != Utilities.PERMISSION_NONE;
             return result;
         }));
     }

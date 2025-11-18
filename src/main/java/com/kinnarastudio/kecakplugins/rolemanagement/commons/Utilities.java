@@ -1,6 +1,7 @@
-package com.kinnarastudio.kecakplugins.rolemanagement;
+package com.kinnarastudio.kecakplugins.rolemanagement.commons;
 
 import com.kinnarastudio.commons.Try;
+import com.kinnarastudio.kecakplugins.rolemanagement.RoleManagementConfiguration;
 import org.joget.apps.app.dao.AppDefinitionDao;
 import org.joget.apps.app.dao.DatalistDefinitionDao;
 import org.joget.apps.app.dao.FormDefinitionDao;
@@ -22,12 +23,12 @@ import org.joget.directory.model.Group;
 import org.joget.directory.model.User;
 import org.joget.directory.model.service.DirectoryManager;
 import org.joget.plugin.property.service.PropertyUtil;
+import org.joget.workflow.model.service.WorkflowUserManager;
 import org.joget.workflow.util.WorkflowUtil;
 import org.kecak.apps.exception.ApiException;
 import org.springframework.context.ApplicationContext;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Utilities {
-    public final static String APP_ID = "roleMgmt";
+    public final static String ROLE_MANAGEMENT_APP_ID = "roleMgmt";
     public final static String MASTER_ROLE_GROUP_FORM_DEF_ID = "master_role_group";
     public final static String MASTER_ROLE_FORM_DEF_ID = "master_role";
     public final static String MASTER_AUTH_OBJECT_FORM_DEF_ID = "master_auth_obj";
@@ -108,10 +109,17 @@ public class Utilities {
     }
 
     public static int getPermission(String currentUser, String authObject, String objectType) {
-        return getPermission(currentUser, authObject, objectType, null);
+        return getPermission(currentUser, authObject, objectType, false);
     }
 
-    public static int getPermission(String currentUser, String authObject, String objectType, @Nullable Boolean isMobile) {
+    public static int getPermission(String currentUser, String authObject, String objectType, boolean isMobile) {
+        final String cacheKey = CacheUtil.getCacheKey(Utilities.class, authObject, objectType, String.valueOf(isMobile));
+        final Integer cached = (Integer) CacheUtil.getCached(cacheKey);
+        if (cached != null) {
+            LogUtil.debug(Utilities.class.getName(), "Cache hit for key " + cacheKey);
+            return cached;
+        }
+
         try {
             ApplicationContext appContext = AppUtil.getApplicationContext();
             AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
@@ -119,21 +127,16 @@ public class Utilities {
 
             AppDefinition appDef = appDefinitionDao.loadById("roleMgmt");
             Form formMasterAuthObject = Utilities.generateForm(appDef, Utilities.MASTER_AUTH_OBJECT_FORM_DEF_ID);
-            Form formMasterRole = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_FORM_DEF_ID);
-            Form formMasterRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
+            Form formRoles = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_FORM_DEF_ID);
+            Form formRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
 
-            boolean debugMode = debugMode();
-
-            if (debugMode) {
-                LogUtil.info(Utilities.class.getName(), "============= Eximining auth. object [" + authObject + "] for user [" + currentUser + "] platform mobile [" + isMobile + "]=============");
-            }
+            LogUtil.debug(Utilities.class.getName(), "============= Eximining auth. object [" + authObject + "] for user [" + currentUser + "] platform mobile [" + isMobile + "]=============");
 
             // get Master Auth Object
             final FormRow rowMasterAuthObject = formDataDao.load(formMasterAuthObject, authObject);
 
             if (rowMasterAuthObject == null || !objectType.equals(rowMasterAuthObject.getProperty("type"))) {
-                if (debugMode)
-                    LogUtil.warn(Utilities.class.getName(), "Field Authorization Object [" + authObject + "] not defined, grant WRITE access");
+                LogUtil.debug(Utilities.class.getName(), "Field Authorization Object [" + authObject + "] not defined, grant WRITE access");
                 return PERMISSION_WRITE;
             }
 
@@ -142,7 +145,10 @@ public class Utilities {
             final StringBuilder conditionMasterRoleGroup = new StringBuilder();
             final List<String> argumentsMasterRoleGroup = new ArrayList<>();
 
-            conditionMasterRoleGroup.append(" AND e.customProperties.users LIKE '%'||?||'%'");
+
+            conditionMasterRoleGroup.append("e.customProperties.everyone = 'true'");
+            conditionMasterRoleGroup.append(" OR FIND_IN_SET(?, REPLACE(e.customProperties.users, ';', ',')) > 0 OR (e.customProperties.everyone = 'loggedIn' AND '" + WorkflowUserManager.ROLE_ANONYMOUS + "' <> ?)");
+            argumentsMasterRoleGroup.add(currentUser);
             argumentsMasterRoleGroup.add(currentUser);
 
             final Set<String> dirGroups = Optional.of(currentUser)
@@ -155,16 +161,15 @@ public class Utilities {
                     .collect(Collectors.toSet());
 
             dirGroups.forEach(s -> {
-                conditionMasterRoleGroup.append(" OR e.customProperties.groups LIKE '%'||?||'%'");
+                conditionMasterRoleGroup.append(" OR FIND_IN_SET(?, REPLACE(e.customProperties.groups, ';', ',')) > 0");
                 argumentsMasterRoleGroup.add(s);
             });
 
             final Collection<Employment> employments = Optional.of(currentUser)
                     .map(directoryManager::getUserByUsername)
                     .map(User::getEmployments)
-                    .map(o -> (Set<Employment>)o)
                     .stream()
-                    .flatMap(Collection::stream)
+                    .flatMap(Collection<Employment>::stream)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
 
@@ -176,7 +181,7 @@ public class Utilities {
                     .collect(Collectors.toSet());
 
             dirDepartments.forEach(s -> {
-                conditionMasterRoleGroup.append(" OR e.customProperties.departments LIKE '%'||?||'%'");
+                conditionMasterRoleGroup.append(" OR FIND_IN_SET(?, REPLACE(e.customProperties.departments, ';', ',')) > 0");
                 argumentsMasterRoleGroup.add(s);
             });
 
@@ -188,73 +193,51 @@ public class Utilities {
                     .collect(Collectors.toSet());
 
             dirOrganizations.forEach(s -> {
-                conditionMasterRoleGroup.append(" OR e.customProperties.organizations LIKE '%'||?||'%'");
+                conditionMasterRoleGroup.append(" OR FIND_IN_SET(?, REPLACE(e.customProperties.organizations, ';', ',')) > 0");
                 argumentsMasterRoleGroup.add(s);
             });
 
-            conditionMasterRoleGroup.append(" OR e.customProperties.everyone in ('true', 'loggedIn')");
+            final FormRowSet rowsRoleGroup = Optional.ofNullable(formDataDao.find(formRoleGroup, " WHERE (" + conditionMasterRoleGroup + ")", argumentsMasterRoleGroup.toArray(), null, null, null, null))
+                    .orElseGet(FormRowSet::new);
 
-            final Pattern dirUserPattern = Pattern.compile(Stream.of(currentUser).map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
-            final Pattern dirGroupPattern = Pattern.compile(dirGroups.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
-            final Pattern dirDepartmentPattern = Pattern.compile(dirDepartments.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
-            final Pattern dirOrganizationPattern = Pattern.compile(dirOrganizations.stream().map(s -> s.replace("\\", "\\\\")).collect(Collectors.joining("\\b|\\b", "\\b", "\\b")));
-
-            final boolean isCurrentUserAnonymous = WorkflowUtil.isCurrentUserAnonymous();
-
-            final FormRowSet rowSetMasterRoleGroup = Optional.ofNullable(formDataDao.find(formMasterRoleGroup, " WHERE 1 = 1 " + conditionMasterRoleGroup, argumentsMasterRoleGroup.toArray(), null, null, null, null)).stream().flatMap(Collection::stream)
-                    .filter(row -> !row.getDeleted())
-                    .filter(row -> {
-                        final String accessType = row.getProperty("everyone", "");
-                        final String users = row.getProperty("users", "");
-                        final String groups = row.getProperty("groups", "");
-                        final String departments = row.getProperty("departments", "");
-                        final String organizations = row.getProperty("organizations", "");
-
-                        return isEveryOneIncludingAnonymous(accessType)
-                                || (isLoggedIn(accessType) && !isCurrentUserAnonymous)
-                                || (isByUser(accessType) && dirUserPattern.matcher(users).find())
-                                || (isByGroups(accessType) && dirGroupPattern.matcher(groups).find())
-                                || (isByDepartments(accessType) && dirDepartmentPattern.matcher(departments).find())
-                                || (isByOrganizations(accessType) && dirOrganizationPattern.matcher(organizations).find());
-                    })
-                    .peek(row -> {
-                        if (debugMode) {
-                            final String everyone = row.getProperty("everyone");
-                            if ("true".equals(everyone) || "loggedIn".equals(everyone)) {
-                                LogUtil.info(Utilities.class.getName(), "Role Group [" + row.getId() + "] if for everyone [" + everyone + "]");
-                            } else {
-                                LogUtil.info(Utilities.class.getName(), "User [" + currentUser + "] is found in Role Group [" + row.getId() + "]");
-                            }
-                        }
-                    })
-                    .collect(FormRowSet::new, FormRowSet::add, FormRowSet::addAll);
+            rowsRoleGroup.setMultiRow(true);
 
             // create Master Role filter based on Master Role Group data
-            final Set<String> roles = rowSetMasterRoleGroup.stream()
+            final Set<String> roles = rowsRoleGroup.stream()
                     .map(r -> r.getProperty("roles"))
                     .filter(Objects::nonNull)
                     .map(s -> s.split(";"))
                     .flatMap(Arrays::stream)
                     .collect(Collectors.toSet());
 
+            final Collection<String> roleIds = getCompleteRoles(formRoles, roles);
+
+            if (roleIds.isEmpty()) {
+                return PERMISSION_NONE;
+            }
+
             // get Master Role+
-            final FormRowSet rowSetMasterRole = getMasterRole(formMasterRole, getCompleteRoles(formMasterRole, roles), rowMasterAuthObject.getId());
+            final FormRowSet rowSetMasterRole = getMasterRole(formRoles, roleIds, rowMasterAuthObject.getId());
 
             int ret = rowSetMasterRole
                     .stream()
                     .map(Try.onFunction(r -> {
                         final String permission = r.getProperty("permission");
-                        final String platform = r.getProperty("platform");
 
-                        if (debugMode) {
-                            LogUtil.info(Utilities.class.getName(), "Role [" + r.getId() + "] has [" + permission + "] permission in platform [" + platform + "]");
-                        }
+                        final Set<String> platform = Optional.ofNullable(r.getProperty("platform"))
+                                .map(s -> s.split(";"))
+                                .stream()
+                                .flatMap(Arrays::stream)
+                                .filter(Predicate.not(String::isEmpty))
+                                .collect(Collectors.toSet());
 
-                        if (isMobile != null && isMobile && !platform.contains("mobileapp")) {
+                        LogUtil.debug(Utilities.class.getName(), "Role [" + r.getId() + "] has [" + permission + "] permission in platform [" + platform + "]");
+
+                        if (isMobile && !platform.contains("mobileapp")) {
                             return Utilities.PERMISSION_NONE;
                         }
 
-                        if (isMobile != null && !isMobile && !platform.contains("web")) {
+                        if (!isMobile && !platform.contains("web")) {
                             return Utilities.PERMISSION_NONE;
                         }
 
@@ -271,7 +254,8 @@ public class Utilities {
                     }))
                     .reduce((p1, p2) -> p1 | p2)
                     .orElse(Utilities.PERMISSION_NONE);
-            return ret;
+
+            return CacheUtil.putAndReturnCache(cacheKey, ret);
         } catch (Exception e) {
             final int granted = WorkflowUtil.isCurrentUserInRole(WorkflowUtil.ROLE_ADMIN) ? Utilities.PERMISSION_WRITE : Utilities.PERMISSION_NONE;
             LogUtil.error(Utilities.class.getName(), e, "User [" + WorkflowUtil.getCurrentUsername() + "] Error while retrieving permission, grant [" + granted + "] permission access");
@@ -308,7 +292,7 @@ public class Utilities {
         final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
         final DirectoryManager directoryManager = (DirectoryManager) appContext.getBean("directoryManager");
         final FormDataDao formDataDao = (FormDataDao) appContext.getBean("formDataDao");
-        final AppDefinition appDef = appDefinitionDao.loadById(APP_ID);
+        final AppDefinition appDef = appDefinitionDao.loadById(ROLE_MANAGEMENT_APP_ID);
         final Form formMasterRoleGroup = Utilities.generateForm(appDef, Utilities.MASTER_ROLE_GROUP_FORM_DEF_ID);
 
         return Optional.ofNullable(roleGroups)
@@ -338,7 +322,7 @@ public class Utilities {
     private static String getConfigurationString(String propertyName) {
         final ApplicationContext appContext = AppUtil.getApplicationContext();
         final AppDefinitionDao appDefinitionDao = (AppDefinitionDao) appContext.getBean("appDefinitionDao");
-        final AppDefinition roleManagementAppDef = appDefinitionDao.loadById(APP_ID);
+        final AppDefinition roleManagementAppDef = appDefinitionDao.loadById(ROLE_MANAGEMENT_APP_ID);
         final AppDefinition currentAppDef = AppUtil.getCurrentAppDefinition();
 
         // get Role Management Configuration
@@ -362,60 +346,81 @@ public class Utilities {
         return "true".equalsIgnoreCase(getConfigurationString("debugMode"));
     }
 
-    protected static Set<String> getCompleteRoles(final Form formMasterRole, final Set<String> roleIds) {
-        final Set<String> results = new HashSet<>(roleIds);
-        final FormDataDao formDataDao = (FormDataDao) AppUtil.getApplicationContext().getBean("formDataDao");
-        final String condition;
-        final String[] arguments;
-        if (roleIds.isEmpty()) {
-            condition = "where 1 <> 1";
-            arguments = null;
-        } else {
-            condition = results.stream().map(s -> "?").collect(Collectors.joining(",", "where id in (", ")"));
-            arguments = results.toArray(new String[0]);
+    /**
+     *
+     * @param formRole
+     * @param roleIds
+     * @return
+     */
+    protected static Collection<String> getCompleteRoles(final Form formRole, final Collection<String> roleIds) {
+        return getCompleteRoles(formRole, roleIds, 5);
+    }
+
+    /**
+     * Recuresively get included roles
+     *
+     * @param formRole
+     * @param roleIds
+     * @param depth
+     * @return
+     */
+    protected static Collection<String> getCompleteRoles(final Form formRole, final Collection<String> roleIds, int depth) {
+        if (depth < 0) {
+            return Collections.emptySet();
         }
 
-        final Set<String> includeRoleIds = Optional.ofNullable(formDataDao.find(formMasterRole, condition, arguments, null, null, null, null))
-                .map(Collection::stream)
-                .orElseGet(Stream::empty)
+        final Set<String> results = new HashSet<>(roleIds);
+        final FormDataDao formDataDao = (FormDataDao) AppUtil.getApplicationContext().getBean("formDataDao");
+
+        if (roleIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        final String condition = results.stream().map(s -> "?").collect(Collectors.joining(",", "where id in (", ")"));
+        final String[] arguments = results.toArray(new String[0]);
+
+        final Set<String> includeRoleIds = Optional.ofNullable(formDataDao.find(formRole, condition, arguments, null, null, null, null))
+                .stream()
+                .flatMap(Collection::stream)
                 .map(r -> r.getProperty("include_roles"))
                 .filter(Objects::nonNull)
                 .map(s -> s.split(";"))
                 .flatMap(Arrays::stream)
-                .filter(s -> !results.contains(s))
+                .filter(Predicate.not(results::contains))
+                .filter(Predicate.not(String::isEmpty))
                 .collect(Collectors.toSet());
 
         if (!includeRoleIds.isEmpty()) {
-            results.addAll(getCompleteRoles(formMasterRole, includeRoleIds));
+            results.addAll(getCompleteRoles(formRole, includeRoleIds, depth - 1));
         }
 
         return results;
     }
 
-    protected static FormRowSet getMasterRole(Form formMasterRole, Set<String> roleIds, String authObjectId) {
-        final FormDataDao formDataDao = (FormDataDao) AppUtil.getApplicationContext().getBean("formDataDao");
-
-        final String conditionAuthObject = " AND e.customProperties.auth_object LIKE '%" + authObjectId + "%'";
-
-        final String conditionsRoleId;
+    protected static FormRowSet getMasterRole(Form formRoles, Collection<String> roleIds, String authObjectId) {
         if (roleIds.isEmpty()) {
-            conditionsRoleId = " and 1 <> 1";
-        } else {
-            conditionsRoleId = roleIds
-                    .stream()
-                    .collect(Collectors.joining("', '", " and id in ('", "')"));
+            return new FormRowSet();
         }
 
-        return Optional.ofNullable(formDataDao.find(formMasterRole, "where 1 = 1 " + conditionsRoleId + conditionAuthObject, null, null, null, null, null))
-                .map(Collection::stream)
-                .orElseGet(Stream::empty)
-                .filter(row -> isContainingAuthObject(authObjectId, row))
-                .collect(FormRowSet::new, FormRowSet::add, FormRowSet::addAll);
-    }
+        final FormDataDao formDataDao = (FormDataDao) AppUtil.getApplicationContext().getBean("formDataDao");
 
-    protected static boolean isContainingAuthObject(String authObjectId, FormRow rowRole) {
-        final Pattern patternAuthObject = Pattern.compile("\\b" + authObjectId + "\\b");
-        return patternAuthObject.matcher(rowRole.getProperty("auth_object")).find();
+        final StringBuilder condition = new StringBuilder("WHERE 1 = 1");
+        final List<String> args = new ArrayList<>();
+
+        if (authObjectId != null && !authObjectId.isEmpty()) {
+            condition.append(" AND FIND_IN_SET(?, REPLACE(e.customProperties.auth_object, ';', ',')) > 0");
+            args.add(authObjectId);
+        }
+
+        if (!roleIds.isEmpty()) {
+            condition.append(roleIds.stream().map(s -> "?").collect(Collectors.joining(",", " AND id IN (", ")")));
+            args.addAll(roleIds);
+        }
+
+        return Optional.ofNullable(formDataDao.find(formRoles, condition.toString(), args.toArray(), null, null, null, null))
+                .stream()
+                .flatMap(Collection::stream)
+                .collect(FormRowSet::new, FormRowSet::add, FormRowSet::addAll);
     }
 
     public static String getParameter(HttpServletRequest request, String parameterName) throws ApiException {
